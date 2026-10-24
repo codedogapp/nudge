@@ -22,8 +22,8 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | Id | Step | Status |
 | --- | --- | --- |
 | `agents-md` | AGENTS.md, this plan and the README | Done (#1) |
-| `ci-baseline` | CI with mise, SonarQube Cloud and jactionlint; Renovate came with its onboarding pull request (#2) | In review (#4) |
-| `go-toolchain` | The Go module, golangci-lint with the gates, the coverage gate and `mise run check`, with the first package: a question, its answer and the wait between them | |
+| `ci-baseline` | CI with mise, SonarQube Cloud and jactionlint; Renovate came with its onboarding pull request (#2) | Done (#4) |
+| `go-toolchain` | The Go module, golangci-lint with the gates, the coverage gate and `mise run check`, with the first package: a question, its answer and the wait between them | In review (#5) |
 | `ask-socket` | `nudge serve` on the agent socket, and `nudge ask`; check that a `nudge ask` that has moved to the background wakes the agent when it ends (risk 1) | |
 | `answer-page` | The page behind the phone door: the pending questions and their answer forms, and the Tailscale lock; `docs/setup.md` for `tailscale serve` | |
 | `pwa` | The manifest and the icons, so the iPhone can add nudge to its Home Screen | |
