@@ -14,6 +14,7 @@ import (
 	"github.com/codedogapp/nudge/internal/inbox"
 	"github.com/codedogapp/nudge/internal/phonedoor"
 	"github.com/codedogapp/nudge/internal/server"
+	"github.com/codedogapp/nudge/internal/subscriptions"
 	"github.com/codedogapp/nudge/internal/tailscale"
 	"github.com/codedogapp/nudge/internal/vapid"
 )
@@ -38,8 +39,8 @@ func serve(ctx context.Context, args []string, stderr io.Writer) int {
 	return exitOK
 }
 
-// listenAndServe loads the VAPID key, opens the agent door and the phone door on one inbox, and
-// serves them.
+// listenAndServe loads the VAPID key and the push subscriptions, opens the agent door and the
+// phone door on one inbox, and serves them.
 func listenAndServe(ctx context.Context, logger *slog.Logger) error {
 	given, err := readSettings()
 	if err != nil {
@@ -48,6 +49,11 @@ func listenAndServe(ctx context.Context, logger *slog.Logger) error {
 
 	// The key loads in a moment; a stop that comes meanwhile ends serve right after.
 	key, err := vapid.NewKeychain(given.security).Load(context.WithoutCancel(ctx))
+	if err != nil {
+		return err
+	}
+
+	devices, err := subscriptions.Open(given.subscriptions)
 	if err != nil {
 		return err
 	}
@@ -77,7 +83,7 @@ func listenAndServe(ctx context.Context, logger *slog.Logger) error {
 
 	return serveDoors(ctx,
 		door{"agent", agents, agentdoor.Routes(&box)},
-		door{"phone", phones, lock(phonedoor.Routes(&box, key.Public))},
+		door{"phone", phones, lock(phonedoor.Routes(&box, key.Public, devices))},
 	)
 }
 

@@ -9,15 +9,17 @@ import (
 	"net/http"
 
 	"github.com/codedogapp/nudge/internal/inbox"
+	"github.com/codedogapp/nudge/internal/subscriptions"
 )
 
 //go:embed page.html
 var page string
 
-// site serves the pages from the inbox.
+// site serves the pages from the inbox, and keeps the devices that subscribe to its pushes.
 type site struct {
 	box     *inbox.Inbox
 	pushKey string
+	devices *subscriptions.Store
 	page    *template.Template
 }
 
@@ -32,18 +34,20 @@ type view struct {
 // Routes returns the phone door's handler. GET / lists the questions that wait, newest first, and
 // POST /questions/{id}/answer answers one; GET of a file in static gives the page its look, its
 // icons and its manifest. The page carries pushKey, the server's VAPID public key, for a browser
-// to subscribe to its pushes. It refuses cross-origin posts, and adds the security headers to
-// every response.
-func Routes(box *inbox.Inbox, pushKey string) http.Handler {
+// to subscribe to its pushes, and POST /subscriptions adds the subscription to devices. It
+// refuses cross-origin posts, and adds the security headers to every response.
+func Routes(box *inbox.Inbox, pushKey string, devices *subscriptions.Store) http.Handler {
 	pages := site{
 		box:     box,
 		pushKey: pushKey,
+		devices: devices,
 		page:    template.Must(template.New("page").Parse(page)),
 	}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", pages.list)
 	serveStatic(mux)
 	mux.HandleFunc("POST /questions/{id}/answer", pages.answer)
+	mux.HandleFunc("POST /subscriptions", pages.subscribe)
 
 	return secure(http.NewCrossOriginProtection().Handler(mux))
 }

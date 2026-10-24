@@ -67,9 +67,11 @@ func form(t *testing.T, path string, values url.Values) *http.Request {
 	return req
 }
 
-func serve(box *inbox.Inbox, req *http.Request) *httptest.ResponseRecorder {
+func serve(t *testing.T, box *inbox.Inbox, req *http.Request) *httptest.ResponseRecorder {
+	t.Helper()
+
 	rec := httptest.NewRecorder()
-	phonedoor.Routes(box, pushKey).ServeHTTP(rec, req)
+	phonedoor.Routes(box, pushKey, devices(t)).ServeHTTP(rec, req)
 
 	return rec
 }
@@ -110,7 +112,7 @@ func TestAnswerReachesTheAsker(t *testing.T) {
 					Text: "Merge?", Options: []string{"Squash", "Rebase", "Ship\nit"},
 				})
 
-				rec := serve(box, form(t, answerPath(box), test.values))
+				rec := serve(t, box, form(t, answerPath(box), test.values))
 				if rec.Code != http.StatusSeeOther || rec.Header().Get("Location") != "/" {
 					t.Fatalf(
 						"POST = %d to %q, want 303 to /",
@@ -175,7 +177,7 @@ func TestAnswerIsRefused(t *testing.T) {
 			synctest.Test(t, func(t *testing.T) {
 				box, _ := asked(t, inbox.Question{Text: "Merge?", Options: []string{"Squash"}})
 
-				rec := serve(box, form(t, test.path(box), test.values))
+				rec := serve(t, box, form(t, test.path(box), test.values))
 				if rec.Code != test.status {
 					t.Errorf("POST = %d, want %d", rec.Code, test.status)
 				}
@@ -199,13 +201,14 @@ func TestAnswerToAnAnsweredQuestionIsRefused(t *testing.T) {
 		path := answerPath(box)
 
 		if rec := serve(
+			t,
 			box,
 			form(t, path, url.Values{"text": {"Yes."}}),
 		); rec.Code != http.StatusSeeOther {
 			t.Fatalf("first POST = %d, want 303", rec.Code)
 		}
 
-		rec := serve(box, form(t, path, url.Values{"text": {"No."}}))
+		rec := serve(t, box, form(t, path, url.Values{"text": {"No."}}))
 		if rec.Code != http.StatusNotFound || !strings.Contains(rec.Body.String(), gone) {
 			t.Errorf("second POST = %d %s, want 404 and %q", rec.Code, rec.Body, gone)
 		}

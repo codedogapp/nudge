@@ -4,6 +4,7 @@ import (
 	"cmp"
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/codedogapp/nudge/internal/vapid"
 )
@@ -11,19 +12,22 @@ import (
 // The variables that nudge serve reads its settings from (docs/setup.md), and the phone door's
 // address when NUDGE_LISTEN is unset.
 const (
-	loginVar      = "NUDGE_LOGIN"
-	hostVar       = "NUDGE_HOST"
-	listenVar     = "NUDGE_LISTEN"
-	securityVar   = "NUDGE_SECURITY"
-	defaultListen = "127.0.0.1:8700"
+	loginVar         = "NUDGE_LOGIN"
+	hostVar          = "NUDGE_HOST"
+	listenVar        = "NUDGE_LISTEN"
+	securityVar      = "NUDGE_SECURITY"
+	subscriptionsVar = "NUDGE_SUBSCRIPTIONS"
+	defaultListen    = "127.0.0.1:8700"
 )
 
-// settings are what nudge serve needs to open the phone door and to load its VAPID key.
+// settings are what nudge serve needs to open the phone door, to load its VAPID key and to keep
+// the devices that subscribe to its pushes.
 type settings struct {
-	login    string // The one Tailscale login let in.
-	host     string // The ts.net name that tailscale serve publishes.
-	listen   string // The phone door's address.
-	security string // The security tool that keeps the VAPID key.
+	login         string // The one Tailscale login let in.
+	host          string // The ts.net name that tailscale serve publishes.
+	listen        string // The phone door's address.
+	security      string // The security tool that keeps the VAPID key.
+	subscriptions string // The file that keeps the push subscriptions.
 }
 
 // readSettings reads the settings from the environment. NUDGE_LOGIN and NUDGE_HOST must be set.
@@ -38,12 +42,33 @@ func readSettings() (settings, error) {
 		return settings{}, err
 	}
 
+	subscriptions, err := subscriptionsPath()
+	if err != nil {
+		return settings{}, err
+	}
+
 	return settings{
-		login:    login,
-		host:     host,
-		listen:   cmp.Or(os.Getenv(listenVar), defaultListen),
-		security: cmp.Or(os.Getenv(securityVar), vapid.Security),
+		login:         login,
+		host:          host,
+		listen:        cmp.Or(os.Getenv(listenVar), defaultListen),
+		security:      cmp.Or(os.Getenv(securityVar), vapid.Security),
+		subscriptions: subscriptions,
 	}, nil
+}
+
+// subscriptionsPath is NUDGE_SUBSCRIPTIONS when it's set, else nudge/subscriptions.json in the
+// user's config folder, next to the agent socket.
+func subscriptionsPath() (string, error) {
+	if path := os.Getenv(subscriptionsVar); path != "" {
+		return path, nil
+	}
+
+	config, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("find the config folder: %w", err)
+	}
+
+	return filepath.Join(config, "nudge", "subscriptions.json"), nil
 }
 
 // required returns the value of the variable name, or an error if it is unset or empty.
