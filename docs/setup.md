@@ -1,6 +1,6 @@
 # Setup
 
-How to install nudge on a Mac, and what it needs before `nudge serve` can run: its settings, and `tailscale serve` to publish the phone door on the tailnet. [The plan](plan.md) says why (§3, decisions 7, 8, 18 and 20). The last section adds nudge to an agent.
+How to install nudge on a Mac, what it needs before `nudge serve` can run (its settings, and `tailscale serve` to publish the phone door on the tailnet), and how to run it at login. [The plan](plan.md) says why (§3, decisions 7, 8 and 18 to 21). The last section adds nudge to an agent.
 
 ## Install
 
@@ -16,7 +16,7 @@ The binary is then `~/.local/share/mise/installs/github-codedogapp-nudge/latest/
 
 ## Settings
 
-`nudge serve` reads its settings from the environment. When it runs from the source, they live in `mise.local.toml`, at the repo's root: git ignores it, and mise puts its `[env]` into every task's environment.
+`nudge serve` reads its settings from the environment. They live in `mise.local.toml`, at the repo's root: git ignores it, and mise puts its `[env]` into every task's environment, so `mise run serve` and `mise run launchd` both get them.
 
 ```toml
 [env]
@@ -67,6 +67,26 @@ go run . ask --option Yes --option No "Merge the pull request?"
 ```
 
 Answer it on the page: tap an option, send a reply, or type a reply and then tap an option to send both. `nudge ask` prints the answer and exits 0.
+
+## Run at login
+
+Once nudge is installed ([Install](#install)) and its settings are in `mise.local.toml`, run this in the checkout:
+
+```sh
+mise run launchd
+```
+
+It writes the launchd agent `~/Library/LaunchAgents/com.github.codedogapp.nudge.plist` and loads it. The agent starts the installed `nudge serve` at once and at each login, and starts it again whenever it stops. It gets `NUDGE_LOGIN` and `NUDGE_HOST`, and `NUDGE_LISTEN`, `NUDGE_SOCKET` and `NUDGE_SUBSCRIPTIONS` if they're set. The task writes nothing without the first two, or without the installed binary. `tailscale serve` must stay on ([Tailscale](#tailscale)).
+
+The agent's log is `~/Library/Logs/nudge/serve.log`, which gets the refused requests and the errors. When `nudge serve` can't start, launchd tries again every 10 seconds, and the log says why.
+
+The agent keeps the binary and the settings it started with: run `mise run launchd` again after `mise upgrade` or a settings change. `mise run serve` can't run next to the agent, which holds the port and the socket. To see the agent, then to stop it and remove it:
+
+```sh
+launchctl print gui/$(id -u)/com.github.codedogapp.nudge
+launchctl bootout gui/$(id -u)/com.github.codedogapp.nudge
+rm ~/Library/LaunchAgents/com.github.codedogapp.nudge.plist
+```
 
 ## The VAPID key
 
