@@ -8,7 +8,10 @@
 </head>
 <body>
 <h1>nudge</h1>
-{{- range .}}
+{{- with .Refusal}}
+<p role="alert">{{.}}</p>
+{{- end}}
+{{- range .Questions}}
 <article>
 {{- with .Project}}
 <p>{{.}}</p>
@@ -17,13 +20,13 @@
 {{- with .Details}}
 <p>{{.}}</p>
 {{- end}}
-{{- with .Options}}
-<ul>
-{{- range .}}
-<li>{{.}}</li>
+<form method="post" action="/questions/{{.ID}}/answer">
+{{- range .Options}}
+<button name="option" value="{{.}}" formnovalidate>{{.}}</button>
 {{- end}}
-</ul>
-{{- end}}
+<label>Reply <textarea name="text" required></textarea></label>
+<button>Send the reply</button>
+</form>
 </article>
 {{- else}}
 <p>No question waits for an answer.</p>
