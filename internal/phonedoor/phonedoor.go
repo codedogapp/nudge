@@ -28,12 +28,14 @@ type view struct {
 }
 
 // Routes returns the phone door's handler. GET / lists the questions that wait, newest first, and
-// POST /questions/{id}/answer answers one. It refuses cross-origin posts, and adds the security
-// headers to every response.
+// POST /questions/{id}/answer answers one; GET /style.css and GET /grain.svg give the page its
+// look. It refuses cross-origin posts, and adds the security headers to every response.
 func Routes(box *inbox.Inbox) http.Handler {
 	pages := site{box: box, page: template.Must(template.New("page").Parse(page))}
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", pages.list)
+	mux.HandleFunc("GET /style.css", asset("style.css"))
+	mux.HandleFunc("GET /grain.svg", asset("grain.svg"))
 	mux.HandleFunc("POST /questions/{id}/answer", pages.answer)
 
 	return secure(http.NewCrossOriginProtection().Handler(mux))

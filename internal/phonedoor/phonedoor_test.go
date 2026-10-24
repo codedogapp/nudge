@@ -140,8 +140,8 @@ func TestPageHasAFormPerQuestion(t *testing.T) {
 		}
 
 		for _, want := range []string{
-			`<textarea name="text" required></textarea>`,
-			`<button>Send the reply</button>`,
+			`<textarea name="text" rows="3" required></textarea>`,
+			`<button class="primary">Send the reply</button>`,
 		} {
 			if got := strings.Count(body, want); got != len(box.Pending()) {
 				t.Errorf("page = %s, want %s once per question, got %d", body, want, got)

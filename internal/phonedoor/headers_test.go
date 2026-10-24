@@ -28,6 +28,8 @@ func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 			status int
 		}{
 			{"the page", visit("/"), http.StatusOK},
+			{"the stylesheet", visit("/style.css"), http.StatusOK},
+			{"the grain", visit("/grain.svg"), http.StatusOK},
 			{"a refusal", form(t, path, url.Values{"option": {"Merge"}}), http.StatusBadRequest},
 			{"a cross-origin post", crossSite, http.StatusForbidden},
 			{"no page", visit("/nope"), http.StatusNotFound},
@@ -36,8 +38,8 @@ func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 		}
 
 		want := map[string]string{
-			"Content-Security-Policy": "default-src 'none'; base-uri 'none'; " +
-				"form-action 'self'; frame-ancestors 'none'",
+			"Content-Security-Policy": "default-src 'none'; style-src 'self'; img-src 'self'; " +
+				"base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
 			"X-Content-Type-Options": "nosniff",
 			"Referrer-Policy":        "same-origin",
 		}
