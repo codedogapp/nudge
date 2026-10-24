@@ -1,6 +1,6 @@
 # Setup
 
-What a Mac needs before `nudge serve` can run: its settings, and `tailscale serve` to publish the phone door on the tailnet. [The plan](plan.md) says why (§3, decisions 7 and 8).
+What a Mac needs before `nudge serve` can run: its settings, and `tailscale serve` to publish the phone door on the tailnet. [The plan](plan.md) says why (§3, decisions 7 and 8). The last section adds nudge to an agent.
 
 ## Settings
 
@@ -18,7 +18,7 @@ NUDGE_HOST = "machine.tailnet.ts.net"
 | `NUDGE_HOST` | The Mac's ts.net name, which `tailscale serve` publishes, without the trailing dot | `nudge serve` exits 1 |
 | `NUDGE_LISTEN` | The phone door's address. Keep it on loopback: anyone who reaches it can send the headers that the lock checks | `127.0.0.1:8700` |
 | `NUDGE_SECURITY` | The `security` tool that keeps the VAPID key. Only the tests change it, to point at a stand-in | `/usr/bin/security` |
-| `NUDGE_SOCKET` | The agent door's socket, for both `nudge serve` and `nudge ask` | `~/Library/Application Support/nudge/agent.sock` |
+| `NUDGE_SOCKET` | The agent door's socket, for `nudge serve`, `nudge ask` and `nudge mcp` | `~/Library/Application Support/nudge/agent.sock` |
 | `NUDGE_SUBSCRIPTIONS` | The file that keeps the devices' push subscriptions | `~/Library/Application Support/nudge/subscriptions.json` |
 
 Tailscale knows the login and the name:
@@ -97,3 +97,23 @@ A tap on a notification opens the page, or loads it again where it's already ope
 Each new question sends one notification to every device that has turned them on. A notification can come late or not at all, so the page always lists every pending question. `nudge serve`'s log says `forgot a device` when a push service says a device has unsubscribed, and `push failed` or `push refused` when a push didn't go out ([the plan](plan.md), decision 16). A device that has just turned notifications on can be forgotten by mistake ([the plan](plan.md), risk 8): opening the page again brings it back.
 
 Each visit sends the device's subscription to `nudge serve` again ([the plan](plan.md), decision 14). There is no button to turn notifications off: turn them off in the device's notification settings, or block them in the browser's settings for the page.
+
+## Agents
+
+An agent asks through `nudge mcp`, an MCP server with one tool, `ask` ([the plan](plan.md), decision 17). The agent starts the server itself, so it needs the `nudge` binary. Until nudge has releases, build it from the checkout:
+
+```sh
+go build -o ~/.local/bin/nudge .
+```
+
+Add the server to Copilot CLI, with a timeout of a day:
+
+```sh
+copilot mcp add --timeout 86400000 nudge -- ~/.local/bin/nudge mcp
+```
+
+Copilot CLI ends a tool call that runs longer than the timeout, and the question goes away with it. Without `--timeout`, Copilot CLI 1.0.102 ended a question after three minutes (risk 9). `copilot mcp add` keeps the server in `~/.copilot/mcp-config.json`, and `copilot mcp get nudge` shows it.
+
+Copilot CLI starts `nudge mcp` in the session's folder, so a question's project is that folder's name. `nudge mcp` reaches `nudge serve` through the same socket as `nudge ask`: when `NUDGE_SOCKET` isn't the default, add `--env NUDGE_SOCKET=<path>` before the `--`.
+
+Copilot CLI can ask at the Mac for permission before the agent uses the tool, which defeats the point when you're away. Start it with `--allow-tool 'nudge(ask)'` to let the agent ask without that prompt.

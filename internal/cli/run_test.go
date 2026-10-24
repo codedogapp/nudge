@@ -40,6 +40,7 @@ func TestRunPrintsTheUsage(t *testing.T) {
 		{"ask with a flag after the question", []string{"ask", "Merge?", "--option", "Yes"}},
 		{"ask with an unknown flag", []string{"ask", "--colour", "red", "Merge?"}},
 		{"ask for help", []string{"ask", "--help"}},
+		{"mcp with an argument", []string{"mcp", "now"}},
 	}
 
 	for _, test := range tests {
@@ -52,7 +53,8 @@ func TestRunPrintsTheUsage(t *testing.T) {
 				t.Errorf("Run(%q) = %d, want 2", test.args, code)
 			}
 
-			if !strings.Contains(stderr.String(), "usage: nudge serve\n") || stdout.Len() != 0 {
+			if !strings.Contains(stderr.String(), "usage: nudge serve\n") ||
+				!strings.Contains(stderr.String(), " nudge mcp\n") || stdout.Len() != 0 {
 				t.Errorf("stdout = %q, stderr = %q, want the usage on stderr",
 					stdout.String(), stderr.String())
 			}
