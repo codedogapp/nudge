@@ -83,6 +83,34 @@ func (s *Store) Add(sub Subscription) error {
 		next[index] = sub
 	}
 
+	return s.replace(next)
+}
+
+// List returns the subscriptions, in the order they were added.
+func (s *Store) List() []Subscription {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	return slices.Clone(s.list)
+}
+
+// Remove forgets the subscription with endpoint, and writes the file. An endpoint the store
+// doesn't hold writes nothing. When the write fails, the store stays as it was.
+func (s *Store) Remove(endpoint string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	sameEndpoint := func(sub Subscription) bool { return sub.Endpoint == endpoint }
+	if !slices.ContainsFunc(s.list, sameEndpoint) {
+		return nil
+	}
+
+	return s.replace(slices.DeleteFunc(slices.Clone(s.list), sameEndpoint))
+}
+
+// replace writes next to the file, then keeps it. When the write fails, the store stays as it was.
+// The caller holds s.mu.
+func (s *Store) replace(next []Subscription) error {
 	if err := s.save(next); err != nil {
 		return fmt.Errorf("write the subscriptions file %s: %w", s.path, err)
 	}
