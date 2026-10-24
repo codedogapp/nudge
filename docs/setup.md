@@ -1,6 +1,18 @@
 # Setup
 
-What a Mac needs before `nudge serve` can run: its settings, and `tailscale serve` to publish the phone door on the tailnet. [The plan](plan.md) says why (§3, decisions 7 and 8). The last section adds nudge to an agent.
+How to install nudge on a Mac, and what it needs before `nudge serve` can run: its settings, and `tailscale serve` to publish the phone door on the tailnet. [The plan](plan.md) says why (§3, decisions 7, 8, 18 and 20). The last section adds nudge to an agent.
+
+## Install
+
+mise installs nudge from its GitHub releases:
+
+```sh
+mise use -g github:codedogapp/nudge
+```
+
+mise checks the release's digest and its build provenance attestation before it installs it. When it looks for the newest release, it skips those less than 24 hours old (its `minimum_release_age` setting): add `--minimum-release-age 0s` to take a new one at once. `mise upgrade` takes the newest release later.
+
+The binary is then `~/.local/share/mise/installs/github-codedogapp-nudge/latest/nudge`, a path that an upgrade keeps. Agents start it from there ([Agents](#agents)).
 
 ## Settings
 
@@ -100,17 +112,13 @@ Each visit sends the device's subscription to `nudge serve` again ([the plan](pl
 
 ## Agents
 
-An agent asks through `nudge mcp`, an MCP server with one tool, `ask` ([the plan](plan.md), decision 17). The agent starts the server itself, so it needs the `nudge` binary. Until nudge has releases, build it from the checkout:
+An agent asks through `nudge mcp`, an MCP server with one tool, `ask` ([the plan](plan.md), decision 17). The agent starts the server itself, from the binary that mise installed ([Install](#install)). Add it to Copilot CLI, with a timeout of a day:
 
 ```sh
-go build -o ~/.local/bin/nudge .
+copilot mcp add --timeout 86400000 nudge -- ~/.local/share/mise/installs/github-codedogapp-nudge/latest/nudge mcp
 ```
 
-Add the server to Copilot CLI, with a timeout of a day:
-
-```sh
-copilot mcp add --timeout 86400000 nudge -- ~/.local/bin/nudge mcp
-```
+Not through mise's shim, `~/.local/share/mise/shims/nudge`: Copilot CLI starts the server in the session's folder, and the shim refuses to run in a folder whose `mise.toml` mise doesn't trust ([the plan](plan.md), fact 9).
 
 Copilot CLI ends a tool call that runs longer than the timeout, and the question goes away with it. Without `--timeout`, Copilot CLI 1.0.102 ended a question after three minutes (risk 9). `copilot mcp add` keeps the server in `~/.copilot/mcp-config.json`, and `copilot mcp get nudge` shows it.
 

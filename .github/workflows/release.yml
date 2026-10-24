@@ -1,0 +1,61 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+  queue: max
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e # v5.2.3
+        with:
+          install_args: go
+          cache: false
+
+      - name: Build for Apple silicon
+        env:
+          CGO_ENABLED: "0"
+          GOOS: darwin
+          GOARCH: arm64
+        run: go build -trimpath -o dist/nudge .
+
+      - name: Check that the version is the tag
+        shell: bash
+        run: |
+          version=$(go version -m dist/nudge | awk '$1 == "mod" { print $3 }')
+          if [ "$version" != "$GITHUB_REF_NAME" ]; then
+            echo "::error::nudge's version is '$version', the tag is '$GITHUB_REF_NAME'"
+            exit 1
+          fi
+
+      - name: Pack
+        run: tar -czf "dist/nudge-$GITHUB_REF_NAME-darwin-arm64.tar.gz" -C dist nudge
+
+      - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6 # v4.2.2
+        with:
+          subject-path: dist/*.tar.gz
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: >-
+          gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"
+          --verify-tag --generate-notes "dist/nudge-$GITHUB_REF_NAME-darwin-arm64.tar.gz"
