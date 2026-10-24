@@ -6,6 +6,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 const usage = `usage: nudge serve
@@ -31,7 +33,7 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	case "ask":
 		return ask(ctx, args[1:], stdout, stderr)
 	case "mcp":
-		return serveMCP(ctx, args[1:], stderr)
+		return serveMCP(ctx, args[1:], &mcp.StdioTransport{}, stderr)
 	default:
 		return misused(stderr)
 	}
