@@ -92,4 +92,6 @@ On the iPhone, open the page in Safari, tap Share, then Add to Home Screen. nudg
 
 Open the page, tap Turn on notifications at the top right, and allow them when the browser asks. The header then says Notifications on. A browser's first time can take half a minute. On the iPhone, do it in the Home Screen app: a Safari tab says Notifications need the Home Screen app. Brave needs Use Google services for push messaging, in its privacy settings ([the plan](plan.md), fact 4).
 
+A tap on a notification opens the page, or loads it again where it's already open; a reply half-typed there is lost ([the plan](plan.md), decision 15).
+
 Each visit sends the device's subscription to `nudge serve` again ([the plan](plan.md), decision 14). There is no button to turn notifications off: turn them off in the device's notification settings, or block them in the browser's settings for the page.
