@@ -59,16 +59,16 @@ Checked on 2026-10-24.
 
 ```mermaid
 sequenceDiagram
-    participant A as Agent's shell
+    participant A as Agent shell
     participant S as nudge serve
     participant P as Push service
     participant U as Phone
-    A->>S: nudge ask (Unix socket); the request stays open
-    S->>P: Web Push: project and question
+    A->>S: nudge ask over the Unix socket, request held open
+    S->>P: Web Push with the project and the question
     P->>U: notification
-    U->>S: open the page (tailscale serve, Tailscale login)
-    U->>S: answer: an option, a reply or both
-    S-->>A: the answer; nudge ask prints it and exits 0
+    U->>S: open the page through tailscale serve
+    U->>S: answer with an option, a reply or both
+    S-->>A: the answer, which nudge ask prints before it exits 0
 ```
 
 - **`nudge ask [--option TEXT]... [--details TEXT] QUESTION`** sends the question, with the name of the current directory as its project, through the agent socket. It waits for the answer, prints it as `option: …` and `text: …` lines, and exits 0. It exits 1 on an error, for example when the server isn't running or stops, and 2 on a usage error. When it ends early (Ctrl-C, or killed), the question goes away.
