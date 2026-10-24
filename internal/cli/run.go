@@ -9,7 +9,8 @@ import (
 )
 
 const usage = `usage: nudge serve
-       nudge ask [--option TEXT]... [--details TEXT] QUESTION`
+       nudge ask [--option TEXT]... [--details TEXT] QUESTION
+       nudge mcp`
 
 // The exit codes: done, an error, and a usage error.
 const (
@@ -29,6 +30,8 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		return serve(ctx, args[1:], stderr)
 	case "ask":
 		return ask(ctx, args[1:], stdout, stderr)
+	case "mcp":
+		return serveMCP(ctx, args[1:], stderr)
 	default:
 		return misused(stderr)
 	}
