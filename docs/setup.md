@@ -54,6 +54,22 @@ go run . ask --option Yes --option No "Merge the pull request?"
 
 Answer it on the page: tap an option, send a reply, or type a reply and then tap an option to send both. `nudge ask` prints the answer and exits 0.
 
+## The VAPID key
+
+`nudge serve` signs its Web Pushes with a VAPID key. On its first start, it makes one and adds it to the login Keychain as service `nudge`, account `vapid-private-key`; later starts read it from there ([the plan](plan.md), decision 11). To print it:
+
+```sh
+security find-generic-password -s nudge -a vapid-private-key -w
+```
+
+`nudge serve` never replaces the key. For a new one, delete it and start `nudge serve` again; every device must then turn its notifications on again:
+
+```sh
+security delete-generic-password -s nudge -a vapid-private-key
+```
+
+When `security` fails, for example on a locked Keychain that can't ask for its password, or the stored key isn't valid, `nudge serve` exits 1 and says why.
+
 ## The Home Screen
 
 On the iPhone, open the page in Safari, tap Share, then Add to Home Screen. nudge then opens as an app of its own, with its icon and without Safari's bars. Web Push needs it: only a Home Screen app can get notifications on the iPhone ([the plan](plan.md), fact 4).

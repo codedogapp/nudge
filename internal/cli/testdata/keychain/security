@@ -1,0 +1,4 @@
+#!/bin/sh
+# A stand-in for macOS's security tool in the tests: it prints a VAPID private key, as
+# find-generic-password -w does.
+echo AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE

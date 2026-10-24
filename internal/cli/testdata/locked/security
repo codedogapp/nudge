@@ -1,0 +1,5 @@
+#!/bin/sh
+# A stand-in for macOS's security tool in the tests: it fails, as when the Keychain is locked and
+# can't ask for its password.
+echo 'security: SecKeychainSearchCopyNext: User interaction is not allowed.' >&2
+exit 36

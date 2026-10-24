@@ -12,6 +12,9 @@ import (
 	"github.com/codedogapp/nudge/internal/phonedoor"
 )
 
+// pushKey stands for the server's VAPID public key.
+const pushKey = "BG_wO5SSQc4drdQ1GeaWDgqFtBppoFwygQOqK84VlMoWPE91OlW_AdxT9sCwx-7ni0DG_30lqW4igrmJzvccFEo"
+
 // waiting returns an inbox where questions wait, asked in their order, until the test ends.
 func waiting(t *testing.T, questions ...inbox.Question) *inbox.Inbox {
 	t.Helper()
@@ -31,7 +34,7 @@ func get(t *testing.T, box *inbox.Inbox, method, path string) *httptest.Response
 	t.Helper()
 
 	rec := httptest.NewRecorder()
-	phonedoor.Routes(box).
+	phonedoor.Routes(box, pushKey).
 		ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), method, path, nil))
 
 	return rec
@@ -156,6 +159,15 @@ func TestPageSaysWhenNoQuestionWaits(t *testing.T) {
 	rec := get(t, &box, http.MethodGet, "/")
 	if want := "No question waits for an answer."; !strings.Contains(rec.Body.String(), want) {
 		t.Errorf("GET / = %d %s, want it to say %q", rec.Code, rec.Body, want)
+	}
+}
+
+func TestPageCarriesThePushKey(t *testing.T) {
+	var box inbox.Inbox
+
+	body := get(t, &box, http.MethodGet, "/").Body.String()
+	if want := `<body data-push-key="` + pushKey + `">`; !strings.Contains(body, want) {
+		t.Errorf("page = %s, want it to contain %s", body, want)
 	}
 }
 
