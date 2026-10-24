@@ -23,8 +23,9 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | --- | --- | --- |
 | `agents-md` | AGENTS.md, this plan and the README | Done (#1) |
 | `ci-baseline` | CI with mise, SonarQube Cloud and jactionlint; Renovate came with its onboarding pull request (#2) | Done (#4) |
-| `go-toolchain` | The Go module, golangci-lint with the gates, the coverage gate and `mise run check`, with the first package: a question, its answer and the wait between them | In review (#5) |
-| `ask-socket` | `nudge serve` on the agent socket, and `nudge ask`; check that a `nudge ask` that has moved to the background wakes the agent when it ends (risk 1) | |
+| `go-toolchain` | The Go module, golangci-lint with the gates, the coverage gate and `mise run check`, with the first package: a question, its answer and the wait between them | Done (#5) |
+| `agent-door` | `nudge serve` on the agent socket: a question waits there for its answer as long as its request | In review (#6) |
+| `ask-cli` | `nudge ask`; check that a `nudge ask` that has moved to the background wakes the agent when it ends (risk 1) | |
 | `answer-page` | The page behind the phone door: the pending questions and their answer forms, and the Tailscale lock; `docs/setup.md` for `tailscale serve` | |
 | `pwa` | The manifest and the icons, so the iPhone can add nudge to its Home Screen | |
 | `push-subscribe` | The service worker, a button that turns notifications on, the subscriptions file, the VAPID key, and the web gates | |
@@ -73,7 +74,7 @@ sequenceDiagram
 
 - **`nudge ask [--option TEXT]... [--details TEXT] QUESTION`** sends the question, with the name of the current directory as its project, through the agent socket. It waits for the answer, prints it as `option: …` and `text: …` lines, and exits 0. It exits 1 on an error, for example when the server isn't running or stops, and 2 on a usage error. When it ends early (Ctrl-C, or killed), the question goes away.
 - **`nudge serve`** is one process with two doors (decision 4):
-  - The **agent door** is a Unix socket, `~/Library/Application Support/nudge/agent.sock`, in a folder with mode 0700; `NUDGE_SOCKET` overrides the path. `POST /questions` holds the request open until the answer arrives or the client leaves, so a question lives exactly as long as its request (decision 5).
+  - The **agent door** is a Unix socket, `~/Library/Application Support/nudge/agent.sock`, in a folder with mode 0700: `nudge serve` makes the folder, and refuses one that others can open; `NUDGE_SOCKET` overrides the path. `POST /questions` holds the request open until the answer arrives or the client leaves, so a question lives exactly as long as its request (decision 5).
   - The **phone door** is `127.0.0.1:8700` (`NUDGE_LISTEN` overrides it), which `tailscale serve --bg --https=8443 8700` publishes as `https://<mac>.<tailnet>.ts.net:8443` (decision 7). Every request needs the `Tailscale-User-Login` header that `tailscale serve` adds, equal to `NUDGE_LOGIN` from `mise.local.toml`; anything else gets 403. No cookies and no sign-in.
 - **The page.** `GET /` lists the pending questions, newest first, each with its project, text and details, a button per option and a box for a reply. `POST /questions/{id}/answer` answers one and redirects back to the list. The server renders the HTML (decision 6), and `http.CrossOriginProtection` guards the forms. An answered question leaves the list.
 - **Push.** Each new question sends a Web Push to every subscribed device, titled with the project, with the question as its text; a tap opens the question on the page. The VAPID private key lives in the login Keychain (service `nudge`, account `vapid-private-key`). The subscriptions live in `~/Library/Application Support/nudge/subscriptions.json`, mode 0600, the only state on disk. A device is forgotten when its push service answers 404 or 410.
@@ -92,7 +93,7 @@ sequenceDiagram
 
 ## 5. Risks
 
-1. **The wake-up is tried with `sleep` only** (fact 3). `ask-socket` tries it with `nudge ask`. Fallback: the rule makes the agent wait in a loop, which costs a model call per round.
+1. **The wake-up is tried with `sleep` only** (fact 3). `ask-cli` tries it with `nudge ask`. Fallback: the rule makes the agent wait in a loop, which costs a model call per round.
 2. **Web Push on port 8443** hasn't been tried on the iPhone. Checked in `push-send`. Fallback: a Tailscale Service name (fact 6).
 3. **A sleeping Mac** stops the agent and nudge, so the phone gets nothing new.
 4. **Push is best effort**: a notification can come late or not at all. The page always lists every pending question.
