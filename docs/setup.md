@@ -1,6 +1,6 @@
 # Setup
 
-How to install nudge on a Mac, what it needs before `nudge serve` can run (its settings, and `tailscale serve` to publish the phone door on the tailnet), and how to run it at login. [The plan](plan.md) says why (§3, decisions 7, 8 and 18 to 21). The last section adds nudge to an agent.
+How to install nudge on a Mac, what it needs before `nudge serve` can run (its settings, and `tailscale serve` to publish the phone door on the tailnet), and how to run it at login. [The plan](plan.md) says why (§3, decisions 7, 8 and 18 to 22). The last two sections add nudge to an agent, and give the agent its rule.
 
 ## Install
 
@@ -140,8 +140,21 @@ copilot mcp add --timeout 86400000 nudge -- ~/.local/share/mise/installs/github-
 
 Not through mise's shim, `~/.local/share/mise/shims/nudge`: Copilot CLI starts the server in the session's folder, and the shim refuses to run in a folder whose `mise.toml` mise doesn't trust ([the plan](plan.md), fact 9).
 
+Keep the name `nudge`: the agent sees the tool as `nudge-ask`, and its rule calls it that ([The agent's rule](#the-agents-rule)).
+
 Copilot CLI ends a tool call that runs longer than the timeout, and the question goes away with it. Without `--timeout`, Copilot CLI 1.0.102 ended a question after three minutes (risk 9). `copilot mcp add` keeps the server in `~/.copilot/mcp-config.json`, and `copilot mcp get nudge` shows it.
 
 Copilot CLI starts `nudge mcp` in the session's folder, so a question's project is that folder's name. `nudge mcp` reaches `nudge serve` through the same socket as `nudge ask`: when `NUDGE_SOCKET` isn't the default, add `--env NUDGE_SOCKET=<path>` before the `--`.
 
 Copilot CLI can ask at the Mac for permission before the agent uses the tool, which defeats the point when you're away. Start it with `--allow-tool 'nudge(ask)'` to let the agent ask without that prompt.
+
+## The agent's rule
+
+`docs/nudge.instructions.md` tells every Copilot CLI session to ask every question through nudge, never with `ask_user` or in the chat, and to run `nudge ask` when the MCP server isn't there ([the plan](plan.md), decision 22). Copy it to your Copilot CLI instructions, in the checkout:
+
+```sh
+mkdir -p ~/.copilot/instructions
+cp docs/nudge.instructions.md ~/.copilot/instructions/
+```
+
+`copilot instruction list` shows it as a user file. A session reads its instructions when it starts, so restart the running ones, and copy the rule again when it changes.
