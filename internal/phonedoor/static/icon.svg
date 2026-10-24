@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16">
+  <title>nudge</title>
+  <!-- The card's hard shadow, the card, then its question line and two option buttons. -->
+  <rect width="16" height="16" fill="#fafaf8" />
+  <rect x="5" y="5" width="9" height="8" fill="#111111" />
+  <rect x="3" y="3" width="9" height="8" fill="#111111" />
+  <rect x="4" y="4" width="7" height="6" fill="#fafaf8" />
+  <rect x="5" y="5" width="5" height="1" fill="#111111" />
+  <rect x="5" y="7" width="2" height="2" fill="#111111" />
+  <rect x="8" y="7" width="2" height="2" fill="#111111" />
+</svg>

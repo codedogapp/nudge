@@ -46,6 +46,15 @@ depends = ["fmt:check", "lint", "lint:actions", "cover", "vuln"]
 description = "Run nudge serve from the source, with the settings in mise.local.toml"
 run = "go run . serve"
 
+[tasks.icons]
+description = "Render the app icon's PNGs from internal/phonedoor/static/icon.svg (resvg)"
+tools.resvg = "latest"
+run = [
+    "resvg -w 180 -h 180 internal/phonedoor/static/icon.svg internal/phonedoor/static/apple-touch-icon.png",
+    "resvg -w 192 -h 192 internal/phonedoor/static/icon.svg internal/phonedoor/static/icon-192.png",
+    "resvg -w 512 -h 512 internal/phonedoor/static/icon.svg internal/phonedoor/static/icon-512.png",
+]
+
 [tasks.sonar-issues]
 description = "List open SonarQube Cloud issues"
 usage = '''
