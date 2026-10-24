@@ -45,7 +45,7 @@ Never report a step as done before `mise run check` has passed, and say which ga
 - Commit messages and PR titles follow Conventional Commits (`feat(ask): …`, `fix: …`, `build: …`, `ci: …`, `docs: …`): an imperative subject of 72 characters or fewer, and a body that says why when it isn't obvious.
 - **No AI attribution.** Never add `Co-authored-by` trailers for Copilot or any other AI agent.
 - Never force-push `main` or rewrite pushed history.
-- Secrets never go into git or chat. The server's secrets live in the login Keychain on the Mac (`docs/setup.md`); other local settings in `mise.local.toml` (gitignored); CI secrets are GitHub organisation secrets.
+- Secrets never go into git or chat. The server's secrets live in the login Keychain on the Mac; local settings in `mise.local.toml` (gitignored); CI secrets in the repo's GitHub Actions secrets.
 - The repo is public: no personal identifiers, work-project names or third-party material in tracked files.
 - A PR that changes what the user sees includes screenshots: light and dark, desktop and phone where they differ. PR attachments are public too, so take them with made-up questions and a time zone other than the host's.
 

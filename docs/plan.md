@@ -48,7 +48,7 @@ Checked on 2026-10-24.
 
 1. **Copilot CLI remote control.** `/remote on`, or `"remoteSessions": true` in `~/.copilot/settings.json`, lets the user steer a running session from GitHub.com or GitHub Mobile: answer questions, approve permission requests and plans, and send prompts. The docs don't say that a question sends a push notification. When the Copilot seat comes from an organisation, its "Store local sessions in the Cloud" policy must be "View and control", which is not the default.
 2. **Copilot CLI hooks.** The `notification` hook fires when the agent asks the user something (`elicitation_dialog`) or needs a permission (`permission_prompt`), but it is fire-and-forget and can't answer. A `preToolUse` hook on `ask_user` can only allow the call, deny it with a reason, or change its arguments. Command hooks time out after 30 s by default, the docs give no maximum, and a timeout lets the call through.
-3. **The agent's shell.** Copilot CLI's shell tool waits at most 600 s for a command in the foreground. After that, the command keeps running in the background, and the agent is told when it ends. Whether that message wakes an agent that has ended its turn is not yet checked (risk 1).
+3. **The agent's shell.** Copilot CLI's shell tool waits at most 600 s for a command in the foreground. After that, the command keeps running in the background, and the agent is told when it ends. That message wakes an agent that has ended its turn: in a test, `sleep 50` moved to the background after a 30 s wait, the agent ended its turn, and the message started a new turn by itself when the command ended.
 4. **Web Push on the iPhone and the Mac**, from Bakhyard's spike (codedogapp/bakhyard `docs/plan.md` §2). Only a Home Screen web app can subscribe on the iPhone; a Safari tab has neither `PushManager` nor the Notification API. Through `tailscale serve` and its valid certificate, `web.push.apple.com` answered 201 in about 170 ms, and the notification showed 0.4–1 s later, with the app open, in the background or closed; a tap opens the app. Safari on the Mac gets them too; Brave only with "Use Google services for push messaging" on.
 5. **webpush-go** v1.4.0 (2025-01-02) is its newest release; the repo is active and not archived. From the same spike: its JWT always expires after 12 h, it prepends `mailto:` unless the subscriber starts with `https:`, and it pads payloads to 4,096 bytes.
 6. **`tailscale serve`** (Tailscale 1.104.2) serves HTTPS on another port of the machine's tailnet name with `--https=<port>`, and under a name of its own with `--service` (Tailscale Services, not tried).
@@ -92,11 +92,11 @@ sequenceDiagram
 
 ## 5. Risks
 
-1. **The agent may not wake** when a `nudge ask` in the background ends (fact 3). Checked first, in `ask-socket`. Fallback: the rule makes the agent wait in a loop, which costs a model call per round.
+1. **The wake-up is tried with `sleep` only** (fact 3). `ask-socket` tries it with `nudge ask`. Fallback: the rule makes the agent wait in a loop, which costs a model call per round.
 2. **Web Push on port 8443** hasn't been tried on the iPhone. Checked in `push-send`. Fallback: a Tailscale Service name (fact 6).
 3. **A sleeping Mac** stops the agent and nudge, so the phone gets nothing new.
 4. **Push is best effort**: a notification can come late or not at all. The page always lists every pending question.
-5. **Local processes** can reach `127.0.0.1:8700` with a forged `Tailscale-User-Login` header and answer a question. They are trusted, as in Bakhyard.
+5. **Local processes** can reach `127.0.0.1:8700` with a forged `Tailscale-User-Login` header and answer a question. They are trusted, as in Bakhyard. A web page in a browser on the Mac could do the same through DNS rebinding, which open question 5 closes.
 
 ## 6. Open questions
 
@@ -104,13 +104,15 @@ sequenceDiagram
 2. How the VAPID key gets into the Keychain: a `security` command in `docs/setup.md`, or `nudge serve` making it on its first start. Decided in `push-subscribe`.
 3. How `nudge` gets onto the agent's `PATH`: `go install` or mise. Decided in `launchd`.
 4. Where the agent's rule lives: the user's global instructions for Copilot CLI, or each repo's AGENTS.md. Decided in `agent-rule`.
+5. How the phone door keeps out DNS rebinding (risk 5): a check that the `Host` header is the Mac's tailnet name, or a Unix socket, which `tailscale serve unix:<path>` can reach and a browser can't (not tried with the Mac's Tailscale app). Decided in `answer-page`.
 
 ## 7. Sources
 
 - [Steering a GitHub Copilot CLI session from another device](https://docs.github.com/en/copilot/how-tos/copilot-cli/use-copilot-cli/steer-remotely) and [About remote control](https://docs.github.com/en/copilot/concepts/agent-capabilities/agent-powered-workflows-and-operations/about-remote-control) (fact 1).
 - [GitHub Copilot hooks reference](https://docs.github.com/en/copilot/reference/hooks-reference) (fact 2).
+- Copilot CLI 1.0.98: its shell tool's description, and the test on 2026-10-24 (fact 3).
 - [codedogapp/bakhyard `docs/plan.md` §2](https://github.com/codedogapp/bakhyard/blob/main/docs/plan.md#2-feasibility) (fact 4).
 - [SherClockHolmes/webpush-go](https://github.com/SherClockHolmes/webpush-go) (fact 5).
-- `tailscale serve --help` (fact 6).
+- `tailscale serve --help` (fact 6, open question 5).
 - [RFC 6265 §8.5](https://www.rfc-editor.org/rfc/rfc6265#section-8.5) (fact 7).
 - `man 4 unix` on macOS (fact 8).
