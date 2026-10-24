@@ -42,6 +42,10 @@ run = "govulncheck ./..."
 description = "Run the local quality gate"
 depends = ["fmt:check", "lint", "lint:actions", "cover", "vuln"]
 
+[tasks.serve]
+description = "Run nudge serve from the source, with the settings in mise.local.toml"
+run = "go run . serve"
+
 [tasks.sonar-issues]
 description = "List open SonarQube Cloud issues"
 usage = '''

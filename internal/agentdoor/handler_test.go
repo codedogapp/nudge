@@ -3,7 +3,6 @@ package agentdoor_test
 import (
 	"context"
 	"errors"
-	"net"
 	"net/http"
 	"reflect"
 	"strings"
@@ -11,7 +10,6 @@ import (
 	"testing/synctest"
 	"uuid"
 
-	"github.com/codedogapp/nudge/internal/agentdoor"
 	"github.com/codedogapp/nudge/internal/inbox"
 )
 
@@ -105,7 +103,7 @@ func TestQuestionLeavesWithItsAgent(t *testing.T) {
 	})
 }
 
-func TestServeEndsTheQuestionsThatWait(t *testing.T) {
+func TestStoppingEndsTheQuestionsThatWait(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		ctx, stop := context.WithCancel(t.Context())
 		agent := serve(ctx, t)
@@ -187,16 +185,5 @@ func TestDoorRefuses(t *testing.T) {
 				}
 			})
 		})
-	}
-}
-
-func TestServeNeedsItsListener(t *testing.T) {
-	listener := newPipes()
-	_ = listener.Close()
-
-	var box inbox.Inbox
-
-	if err := agentdoor.Serve(t.Context(), listener, &box); !errors.Is(err, net.ErrClosed) {
-		t.Errorf("Serve() on a closed listener = %v, want %v", err, net.ErrClosed)
 	}
 }

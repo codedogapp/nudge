@@ -22,8 +22,8 @@ The main session does all the work itself, in the open, so the user can follow i
 2. **Engineer**: implements the step with unit tests and runs every gate until green.
 3. **QA**: checks every acceptance criterion, runs every gate, probes edge cases and failure paths in our code and config, and adds missing tests. It doesn't hunt for ways around the upstream tools.
 4. **Reviewer**: reviews the diff against this file (separation of concerns, package boundaries, naming, KISS, YAGNI, error handling, test quality, fit with the architecture) and marks each finding blocking or non-blocking.
-5. **Lead**: keeps the docs in sync, commits, opens the PR, and merges after the user's OK.
-6. **User**: reviews the PR and approves or rejects it.
+5. **Lead**: keeps the docs in sync, commits, opens the PR, and merges it once its CI is green.
+6. **User**: reviews the merged PRs at the end and asks for any changes (the user's standing OK of 2026-10-24). Design decisions and changes outside the repo still wait for the user.
 
 - QA and review run once per step. Defects and blocking findings go back to the engineer. A small fix (a few lines of config or docs) then needs only a green `mise run check`; a bigger one goes through QA and review again. After three rounds, stop and ask the user.
 - Non-blocking findings go into the PR description, not into another round.
@@ -34,14 +34,14 @@ The main session does all the work itself, in the open, so the user can follow i
 
 1. `mise run check` passes locally.
 2. The PR's CI is green, including the SonarQube Cloud quality gate.
-3. The user has approved the PR.
+3. The lead has merged the PR.
 
 Never report a step as done before `mise run check` has passed, and say which gates actually ran.
 
 ## Git and pull requests
 
 - Repo: [`codedogapp/nudge`](https://github.com/codedogapp/nudge), public. Default branch `main`.
-- One step, one branch (`step/<id>`, ids from plan §0) and one PR. The lead squash-merges after the user approves, with an explicit subject and body: `gh pr merge --squash --subject "…" --body "…"`.
+- One step, one branch (`step/<id>`, ids from plan §0) and one PR. The lead squash-merges once CI is green, with an explicit subject and body: `gh pr merge --squash --subject "…" --body "…"`.
 - Commit messages and PR titles follow Conventional Commits (`feat(ask): …`, `fix: …`, `build: …`, `ci: …`, `docs: …`): an imperative subject of 72 characters or fewer, and a body that says why when it isn't obvious.
 - **No AI attribution.** Never add `Co-authored-by` trailers for Copilot or any other AI agent.
 - Never force-push `main` or rewrite pushed history.
