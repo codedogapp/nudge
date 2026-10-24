@@ -9,7 +9,6 @@ import (
 	"errors"
 	"io/fs"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -23,10 +22,10 @@ const (
 	storedPublic = "BG_wO5SSQc4drdQ1GeaWDgqFtBppoFwygQOqK84VlMoWPE91OlW_AdxT9sCwx-7ni0DG_30lqW4igrmJzvccFEo"
 )
 
-// fake puts the fake security in testdata first on PATH, in mode, with item stored unless it is
-// empty. It returns the fake's state: the file "item" holds its one item, and "args" logs the
-// arguments it ran with.
-func fake(t *testing.T, mode, item string) *os.Root {
+// fake returns a Keychain that runs the stand-in security in testdata, in mode, with item stored
+// unless it is empty. It also returns the stand-in's state: the file "item" holds its one item,
+// and "args" logs the arguments it ran with.
+func fake(t *testing.T, mode, item string) (vapid.Keychain, *os.Root) {
 	t.Helper()
 
 	dir := t.TempDir()
@@ -44,17 +43,16 @@ func fake(t *testing.T, mode, item string) *os.Root {
 		}
 	}
 
-	bin, err := filepath.Abs("testdata")
+	program, err := filepath.Abs(filepath.Join("testdata", "security"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
 	t.Setenv("FAKE_ITEM", filepath.Join(dir, "item"))
 	t.Setenv("FAKE_ARGS", filepath.Join(dir, "args"))
 	t.Setenv("FAKE_MODE", mode)
 
-	return state
+	return vapid.NewKeychain(program), state
 }
 
 // read returns what the file name in state holds, or "" if there is no such file.
@@ -105,9 +103,9 @@ func assertPair(t *testing.T, key vapid.Key) {
 }
 
 func TestLoadMakesAKeyOnce(t *testing.T) {
-	state := fake(t, "", "")
+	keychain, state := fake(t, "", "")
 
-	made, err := vapid.Load(t.Context())
+	made, err := keychain.Load(t.Context())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -118,7 +116,7 @@ func TestLoadMakesAKeyOnce(t *testing.T) {
 		t.Errorf("the Keychain holds %q, want %q", got, made.Private)
 	}
 
-	again, err := vapid.Load(t.Context())
+	again, err := keychain.Load(t.Context())
 	if err != nil || again != made {
 		t.Errorf("Load() again = %+v, %v; want %+v", again, err, made)
 	}
@@ -133,9 +131,9 @@ func TestLoadMakesAKeyOnce(t *testing.T) {
 }
 
 func TestLoadKeepsAStoredKey(t *testing.T) {
-	state := fake(t, "", stored)
+	keychain, state := fake(t, "", stored)
 
-	key, err := vapid.Load(t.Context())
+	key, err := keychain.Load(t.Context())
 	if want := (vapid.Key{Private: stored, Public: storedPublic}); err != nil || key != want {
 		t.Errorf("Load() = %+v, %v; want %+v", key, err, want)
 	}
@@ -156,9 +154,9 @@ func TestLoadRefusesAnInvalidKey(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			state := fake(t, "", test.item)
+			keychain, state := fake(t, "", test.item)
 
-			_, err := vapid.Load(t.Context())
+			_, err := keychain.Load(t.Context())
 
 			want := "the VAPID key in the Keychain (service nudge, account vapid-private-key) " +
 				"is invalid: "
@@ -175,9 +173,9 @@ func TestLoadRefusesAnInvalidKey(t *testing.T) {
 
 func TestLoadReportsWhatFailed(t *testing.T) {
 	t.Run("security fails", func(t *testing.T) {
-		fake(t, "fail", stored)
+		keychain, _ := fake(t, "fail", stored)
 
-		_, err := vapid.Load(t.Context())
+		_, err := keychain.Load(t.Context())
 
 		want := "read the VAPID key from the Keychain (service nudge, account vapid-private-key): " +
 			"exit status 51: security: boom"
@@ -187,10 +185,10 @@ func TestLoadReportsWhatFailed(t *testing.T) {
 	})
 
 	t.Run("no security", func(t *testing.T) {
-		t.Setenv("PATH", t.TempDir())
+		keychain := vapid.NewKeychain(filepath.Join(t.TempDir(), "security"))
 
-		if _, err := vapid.Load(t.Context()); !errors.Is(err, exec.ErrNotFound) {
-			t.Errorf("Load() = %v, want %v", err, exec.ErrNotFound)
+		if _, err := keychain.Load(t.Context()); !errors.Is(err, fs.ErrNotExist) {
+			t.Errorf("Load() = %v, want %v", err, fs.ErrNotExist)
 		}
 	})
 }
@@ -211,9 +209,9 @@ func TestLoadChecksTheNewKey(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.mode, func(t *testing.T) {
-			fake(t, test.mode, "")
+			keychain, _ := fake(t, test.mode, "")
 
-			if _, err := vapid.Load(t.Context()); err == nil || err.Error() != test.want {
+			if _, err := keychain.Load(t.Context()); err == nil || err.Error() != test.want {
 				t.Errorf("Load() = %v, want %q", err, test.want)
 			}
 		})
@@ -221,12 +219,12 @@ func TestLoadChecksTheNewKey(t *testing.T) {
 }
 
 func TestLoadStopsWithItsContext(t *testing.T) {
-	fake(t, "", stored)
+	keychain, _ := fake(t, "", stored)
 
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	if _, err := vapid.Load(ctx); !errors.Is(err, context.Canceled) {
+	if _, err := keychain.Load(ctx); !errors.Is(err, context.Canceled) {
 		t.Errorf("Load() = %v, want %v", err, context.Canceled)
 	}
 }

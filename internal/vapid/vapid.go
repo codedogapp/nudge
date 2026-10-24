@@ -12,6 +12,9 @@ import (
 	"strings"
 )
 
+// Security is the path of macOS's security tool.
+const Security = "/usr/bin/security"
+
 // The Keychain item that holds the private key, as errors name it, and the exit code of security
 // when the item isn't there (errSecItemNotFound).
 const (
@@ -30,12 +33,23 @@ type Key struct {
 	Public  string
 }
 
+// Keychain keeps the key in the login Keychain by running a security tool: Security, or a
+// stand-in in tests.
+type Keychain struct {
+	program string
+}
+
+// NewKeychain returns a Keychain that runs program.
+func NewKeychain(program string) Keychain {
+	return Keychain{program: program}
+}
+
 // Load returns the VAPID key in the login Keychain. When there is none, it makes one and adds it
 // there first. It never replaces a stored key.
-func Load(ctx context.Context) (Key, error) {
-	stored, err := find(ctx)
+func (k Keychain) Load(ctx context.Context) (Key, error) {
+	stored, err := k.find(ctx)
 	if errors.Is(err, errMissing) {
-		return create(ctx)
+		return k.create(ctx)
 	}
 
 	if err != nil {
@@ -46,18 +60,18 @@ func Load(ctx context.Context) (Key, error) {
 }
 
 // create makes a key, adds it to the Keychain, and reads it back to check that it is there.
-func create(ctx context.Context) (Key, error) {
+func (k Keychain) create(ctx context.Context) (Key, error) {
 	private, err := ecdh.P256().GenerateKey(rand.Reader)
 	if err != nil {
 		return Key{}, fmt.Errorf("make a VAPID key: %w", err)
 	}
 
 	made := base64.RawURLEncoding.EncodeToString(private.Bytes())
-	if err := add(ctx, made); err != nil {
+	if err := k.add(ctx, made); err != nil {
 		return Key{}, err
 	}
 
-	stored, err := find(ctx)
+	stored, err := k.find(ctx)
 	if err != nil {
 		return Key{}, fmt.Errorf("read back the new VAPID key: %w", err)
 	}
@@ -95,11 +109,8 @@ func invalid(err error) error {
 }
 
 // find returns the stored private key, or errMissing.
-func find(ctx context.Context) (string, error) {
-	cmd := exec.CommandContext(ctx,
-		"security", "find-generic-password", "-s", service, "-a", account, "-w")
-
-	out, err := run(cmd, "")
+func (k Keychain) find(ctx context.Context) (string, error) {
+	out, err := k.run(ctx, "", "find-generic-password", "-s", service, "-a", account, "-w")
 	if exit, ok := errors.AsType[*exec.ExitError](err); ok && exit.ExitCode() == notFound {
 		return "", errMissing
 	}
@@ -113,20 +124,22 @@ func find(ctx context.Context) (string, error) {
 
 // add adds the private key to the Keychain. security reads the command from stdin, so the key
 // never shows in a process's arguments. Without -U, it refuses to replace an item.
-func add(ctx context.Context, private string) error {
+func (k Keychain) add(ctx context.Context, private string) error {
 	command := fmt.Sprintf("add-generic-password -s %s -a %s -w %s\n", service, account, private)
-	if _, err := run(exec.CommandContext(ctx, "security", "-i"), command); err != nil {
+	if _, err := k.run(ctx, command, "-i"); err != nil {
 		return fmt.Errorf("add the VAPID key to the Keychain (%s): %w", item, err)
 	}
 
 	return nil
 }
 
-// run runs cmd, macOS's security tool found on PATH, with stdin, and returns what it prints. Its
-// error carries what the tool printed on stderr.
-func run(cmd *exec.Cmd, stdin string) (string, error) {
+// run runs the security tool with args and stdin, and returns what it prints. Its error carries
+// what the tool printed on stderr.
+func (k Keychain) run(ctx context.Context, stdin string, args ...string) (string, error) {
 	var stdout, stderr strings.Builder
 
+	//nolint:gosec // G204: no shell runs; the program is Security or a stand-in, args are fixed.
+	cmd := exec.CommandContext(ctx, k.program, args...)
 	cmd.Stdin = strings.NewReader(stdin)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr

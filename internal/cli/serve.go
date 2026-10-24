@@ -47,7 +47,7 @@ func listenAndServe(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	// The key loads in a moment; a stop that comes meanwhile ends serve right after.
-	key, err := vapid.Load(context.WithoutCancel(ctx))
+	key, err := vapid.NewKeychain(given.security).Load(context.WithoutCancel(ctx))
 	if err != nil {
 		return err
 	}

@@ -17,6 +17,7 @@ NUDGE_HOST = "machine.tailnet.ts.net"
 | `NUDGE_LOGIN` | The one Tailscale login let in | `nudge serve` exits 1 |
 | `NUDGE_HOST` | The Mac's ts.net name, which `tailscale serve` publishes, without the trailing dot | `nudge serve` exits 1 |
 | `NUDGE_LISTEN` | The phone door's address. Keep it on loopback: anyone who reaches it can send the headers that the lock checks | `127.0.0.1:8700` |
+| `NUDGE_SECURITY` | The `security` tool that keeps the VAPID key. Only the tests change it, to point at a stand-in | `/usr/bin/security` |
 | `NUDGE_SOCKET` | The agent door's socket, for both `nudge serve` and `nudge ask` | `~/Library/Application Support/nudge/agent.sock` |
 
 Tailscale knows the login and the name:

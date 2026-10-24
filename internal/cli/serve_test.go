@@ -21,19 +21,19 @@ func configure(t *testing.T) {
 	t.Setenv("NUDGE_LOGIN", "user@example.com")
 	t.Setenv("NUDGE_HOST", "machine.tailnet.ts.net")
 	t.Setenv("NUDGE_LISTEN", "127.0.0.1:0")
-	onPath(t, "keychain")
+	standIn(t, "keychain")
 }
 
-// onPath puts the fake security in testdata/dir first on PATH.
-func onPath(t *testing.T, dir string) {
+// standIn points NUDGE_SECURITY at the stand-in security tool in testdata/dir.
+func standIn(t *testing.T, dir string) {
 	t.Helper()
 
-	abs, err := filepath.Abs(filepath.Join("testdata", dir))
+	abs, err := filepath.Abs(filepath.Join("testdata", dir, "security"))
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	t.Setenv("PATH", abs+string(os.PathListSeparator)+os.Getenv("PATH"))
+	t.Setenv("NUDGE_SECURITY", abs)
 }
 
 func assertGone(t *testing.T, path string) {
@@ -102,7 +102,7 @@ func TestServeNeedsItsSettings(t *testing.T) {
 func TestServeNeedsItsKey(t *testing.T) {
 	path := socketIn(t)
 	configure(t)
-	onPath(t, "locked")
+	standIn(t, "locked")
 
 	var stdout, stderr strings.Builder
 
