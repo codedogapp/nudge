@@ -4,4 +4,8 @@ threshold:
   package: 70
   total: 80
 
+exclude:
+  paths:
+    - '^main\.go$'
+
 force-annotation-comment: true
