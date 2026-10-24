@@ -94,4 +94,6 @@ Open the page, tap Turn on notifications at the top right, and allow them when t
 
 A tap on a notification opens the page, or loads it again where it's already open; a reply half-typed there is lost ([the plan](plan.md), decision 15).
 
+Each new question sends one notification to every device that has turned them on. A notification can come late or not at all, so the page always lists every pending question. `nudge serve`'s log says `forgot a device` when a push service says a device has unsubscribed, and `push failed` or `push refused` when a push didn't go out ([the plan](plan.md), decision 16). A device that has just turned notifications on can be forgotten by mistake ([the plan](plan.md), risk 8): opening the page again brings it back.
+
 Each visit sends the device's subscription to `nudge serve` again ([the plan](plan.md), decision 14). There is no button to turn notifications off: turn them off in the device's notification settings, or block them in the browser's settings for the page.

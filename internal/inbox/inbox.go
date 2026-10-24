@@ -18,6 +18,10 @@ var ErrNotFound = errors.New("no such question")
 // Inbox holds the questions that wait for an answer. The zero value is an empty inbox, safe for
 // use by several goroutines at once.
 type Inbox struct {
+	// Notify, when set, is called with each new question once it's pending, before Ask waits. It
+	// must not block. Set it before the inbox is used.
+	Notify func(Question)
+
 	mu      sync.Mutex
 	waiting []*waiter // oldest first
 }
@@ -39,6 +43,10 @@ func (box *Inbox) Ask(ctx context.Context, question Question) (Answer, error) {
 
 	box.add(pending)
 	defer box.remove(pending)
+
+	if box.Notify != nil {
+		box.Notify(question)
+	}
 
 	select {
 	case answer := <-pending.answer:
