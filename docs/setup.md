@@ -19,6 +19,7 @@ NUDGE_HOST = "machine.tailnet.ts.net"
 | `NUDGE_LISTEN` | The phone door's address. Keep it on loopback: anyone who reaches it can send the headers that the lock checks | `127.0.0.1:8700` |
 | `NUDGE_SECURITY` | The `security` tool that keeps the VAPID key. Only the tests change it, to point at a stand-in | `/usr/bin/security` |
 | `NUDGE_SOCKET` | The agent door's socket, for both `nudge serve` and `nudge ask` | `~/Library/Application Support/nudge/agent.sock` |
+| `NUDGE_SUBSCRIPTIONS` | The file that keeps the devices' push subscriptions | `~/Library/Application Support/nudge/subscriptions.json` |
 
 Tailscale knows the login and the name:
 
@@ -70,6 +71,18 @@ security delete-generic-password -s nudge -a vapid-private-key
 ```
 
 When `security` fails, for example on a locked Keychain that can't ask for its password, or the stored key isn't valid, `nudge serve` exits 1 and says why.
+
+## The subscriptions
+
+Each device that turns its notifications on adds its push subscription to `~/Library/Application Support/nudge/subscriptions.json`, or to the file that `NUDGE_SUBSCRIPTIONS` names: a JSON list that only the user can read. To see it:
+
+```sh
+cat ~/Library/Application\ Support/nudge/subscriptions.json
+```
+
+`nudge serve` keeps the list in memory and writes the whole file on each change, so stop it before you edit or delete the file. To forget every device, stop `nudge serve`, delete the file and start it again.
+
+When the file can't be read, isn't a JSON list, or holds a subscription that isn't valid, `nudge serve` exits 1 and names the file ([the plan](plan.md), decision 13). Fix the file, or delete it to forget every device.
 
 ## The Home Screen
 

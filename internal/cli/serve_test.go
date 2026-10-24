@@ -13,14 +13,15 @@ import (
 	"github.com/codedogapp/nudge/internal/cli"
 )
 
-// configure sets nudge serve's settings, with the phone door on a free loopback port, and gives it
-// a Keychain that holds a VAPID key.
+// configure sets nudge serve's settings, with the phone door on a free loopback port and the
+// subscriptions in a file of the test's own, and gives it a Keychain that holds a VAPID key.
 func configure(t *testing.T) {
 	t.Helper()
 
 	t.Setenv("NUDGE_LOGIN", "user@example.com")
 	t.Setenv("NUDGE_HOST", "machine.tailnet.ts.net")
 	t.Setenv("NUDGE_LISTEN", "127.0.0.1:0")
+	t.Setenv("NUDGE_SUBSCRIPTIONS", filepath.Join(t.TempDir(), "subscriptions.json"))
 	standIn(t, "keychain")
 }
 
@@ -112,6 +113,28 @@ func TestServeNeedsItsKey(t *testing.T) {
 		"(service nudge, account vapid-private-key): exit status 36: " +
 		"security: SecKeychainSearchCopyNext: User interaction is not allowed.\n"
 	if code != 1 || stderr.String() != want {
+		t.Errorf("Run(serve) = %d, stderr = %q, want 1 and %q", code, stderr.String(), want)
+	}
+
+	assertGone(t, path)
+}
+
+func TestServeNeedsValidSubscriptions(t *testing.T) {
+	path := socketIn(t)
+	configure(t)
+
+	file := filepath.Join(t.TempDir(), "subscriptions.json")
+	if err := os.WriteFile(file, []byte("["), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("NUDGE_SUBSCRIPTIONS", file)
+
+	var stdout, stderr strings.Builder
+
+	code := cli.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
+	if want := "nudge serve: the subscriptions file " + file + " is invalid: "; code != 1 ||
+		!strings.HasPrefix(stderr.String(), want) {
 		t.Errorf("Run(serve) = %d, stderr = %q, want 1 and %q", code, stderr.String(), want)
 	}
 

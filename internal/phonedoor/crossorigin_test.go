@@ -26,7 +26,7 @@ func TestCrossOriginAnswerIsRefused(t *testing.T) {
 				req.Header.Del("Sec-Fetch-Site")
 				req.Header.Set(test.header, test.value)
 
-				if rec := serve(box, req); rec.Code != http.StatusForbidden {
+				if rec := serve(t, box, req); rec.Code != http.StatusForbidden {
 					t.Errorf("POST = %d, want 403", rec.Code)
 				}
 

@@ -34,6 +34,7 @@ func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 			{"the manifest", visit("/manifest.json"), http.StatusOK},
 			{"a refusal", form(t, path, url.Values{"option": {"Merge"}}), http.StatusBadRequest},
 			{"a cross-origin post", crossSite, http.StatusForbidden},
+			{"a subscription", subscribing(t, browser), http.StatusNoContent},
 			{"no page", visit("/nope"), http.StatusNotFound},
 			// Last: it takes the question out of the inbox.
 			{"an answer", form(t, path, url.Values{"option": {"Squash"}}), http.StatusSeeOther},
@@ -47,7 +48,7 @@ func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 		}
 
 		for _, test := range tests {
-			rec := serve(box, test.req)
+			rec := serve(t, box, test.req)
 			if rec.Code != test.status {
 				t.Errorf("%s = %d, want %d", test.name, rec.Code, test.status)
 			}

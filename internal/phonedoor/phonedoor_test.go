@@ -3,6 +3,7 @@ package phonedoor_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
 	"strings"
 	"testing"
 	"testing/synctest"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/codedogapp/nudge/internal/inbox"
 	"github.com/codedogapp/nudge/internal/phonedoor"
+	"github.com/codedogapp/nudge/internal/subscriptions"
 )
 
 // pushKey stands for the server's VAPID public key.
@@ -30,11 +32,18 @@ func waiting(t *testing.T, questions ...inbox.Question) *inbox.Inbox {
 	return &box
 }
 
+// devices returns a store of push subscriptions in a file of the test's own.
+func devices(t *testing.T) *subscriptions.Store {
+	t.Helper()
+
+	return devicesAt(t, filepath.Join(t.TempDir(), "subscriptions.json"))
+}
+
 func get(t *testing.T, box *inbox.Inbox, method, path string) *httptest.ResponseRecorder {
 	t.Helper()
 
 	rec := httptest.NewRecorder()
-	phonedoor.Routes(box, pushKey).
+	phonedoor.Routes(box, pushKey, devices(t)).
 		ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), method, path, nil))
 
 	return rec
@@ -184,6 +193,7 @@ func TestDoorServesOnlyItsRoutes(t *testing.T) {
 			"/questions/" + uuid.New().String() + "/answer",
 			http.StatusMethodNotAllowed,
 		},
+		{http.MethodGet, "/subscriptions", http.StatusMethodNotAllowed},
 	}
 
 	for _, test := range tests {
