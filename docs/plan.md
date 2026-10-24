@@ -21,8 +21,8 @@ This document is the source of truth for scope and the work breakdown. How we wo
 
 | Id | Step | Status |
 | --- | --- | --- |
-| `agents-md` | AGENTS.md, this plan and the README | In review (#1) |
-| `ci-baseline` | CI with mise, Renovate, SonarQube Cloud and jactionlint | |
+| `agents-md` | AGENTS.md, this plan and the README | Done (#1) |
+| `ci-baseline` | CI with mise, SonarQube Cloud and jactionlint; Renovate came with its onboarding pull request (#2) | In review (#4) |
 | `go-toolchain` | The Go module, golangci-lint with the gates, the coverage gate and `mise run check`, with the first package: a question, its answer and the wait between them | |
 | `ask-socket` | `nudge serve` on the agent socket, and `nudge ask`; check that a `nudge ask` that has moved to the background wakes the agent when it ends (risk 1) | |
 | `answer-page` | The page behind the phone door: the pending questions and their answer forms, and the Tailscale lock; `docs/setup.md` for `tailscale serve` | |
@@ -97,6 +97,7 @@ sequenceDiagram
 3. **A sleeping Mac** stops the agent and nudge, so the phone gets nothing new.
 4. **Push is best effort**: a notification can come late or not at all. The page always lists every pending question.
 5. **Local processes** can reach `127.0.0.1:8700` with a forged `Tailscale-User-Login` header and answer a question. They are trusted, as in Bakhyard. A web page in a browser on the Mac could do the same through DNS rebinding, which open question 5 closes.
+6. **Floating tool versions**: mise tools use `latest` with no lockfile, so a new release (for example, a new jactionlint rule) can turn CI red with no change in the repo. A local run may also use an older version than CI until `mise upgrade --local`. When CI turns red for no reason, check the tool versions first.
 
 ## 6. Open questions
 
