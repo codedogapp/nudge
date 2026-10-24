@@ -2,10 +2,10 @@ package phonedoor
 
 import "net/http"
 
-// policy is the pages' Content-Security-Policy: they load only their stylesheet and its grain, post
-// only to themselves, and no other page can frame them. base-uri, form-action and frame-ancestors
-// don't fall back to default-src, so the policy names them.
-const policy = "default-src 'none'; style-src 'self'; img-src 'self'; " +
+// policy is the pages' Content-Security-Policy: they load only their stylesheet, its grain, their
+// icons and their manifest, post only to themselves, and no other page can frame them. base-uri,
+// form-action and frame-ancestors don't fall back to default-src, so the policy names them.
+const policy = "default-src 'none'; style-src 'self'; img-src 'self'; manifest-src 'self'; " +
 	"base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 
 // secure adds the security headers to every response that next sends.
