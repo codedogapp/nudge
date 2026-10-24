@@ -65,6 +65,54 @@ depends = ["fmt:check", "lint", "lint:web", "lint:actions", "cover", "test:web",
 description = "Run nudge serve from the source, with the settings in mise.local.toml"
 run = "go run . serve"
 
+[tasks.launchd]
+description = "Run the installed nudge serve at login and keep it running (launchd), with the settings in mise.local.toml"
+shell = "bash -c"
+run = '''
+set -euo pipefail
+label="com.github.codedogapp.nudge"
+data="${MISE_DATA_DIR:-${XDG_DATA_HOME:-${HOME}/.local/share}/mise}"
+bin="${data}/installs/github-codedogapp-nudge/latest/nudge"
+agents="${HOME}/Library/LaunchAgents"
+plist="${agents}/${label}.plist"
+logs="${HOME}/Library/Logs/nudge"
+log="${logs}/serve.log"
+domain="gui/$(id -u)"
+service="${domain}/${label}"
+
+: "${NUDGE_LOGIN:?must be set, see docs/setup.md}"
+: "${NUDGE_HOST:?must be set, see docs/setup.md}"
+if [[ ! -x "${bin}" ]]; then
+  echo "error: nudge is not installed at ${bin}, see docs/setup.md" >&2
+  exit 1
+fi
+
+mkdir -p "${agents}" "${logs}"
+jq -n --arg label "${label}" --arg bin "${bin}" --arg log "${log}" '{
+  Label: $label,
+  ProgramArguments: [$bin, "serve"],
+  EnvironmentVariables: ($ENV | with_entries(select(.key | IN(
+    "NUDGE_LOGIN", "NUDGE_HOST", "NUDGE_LISTEN", "NUDGE_SOCKET", "NUDGE_SUBSCRIPTIONS"
+  )))),
+  KeepAlive: true,
+  StandardOutPath: $log,
+  StandardErrorPath: $log
+}' | plutil -convert xml1 -o "${plist}" -
+
+# bootout can return before the old job has exited, and bootstrap fails until it has.
+tries=0
+while launchctl print "${service}" &>/dev/null; do
+  if ((++tries > 30)); then
+    echo "error: ${service} is still loaded after 30 seconds, see ${log}" >&2
+    exit 1
+  fi
+  launchctl bootout "${service}" &>/dev/null || true
+  sleep 1
+done
+launchctl bootstrap "${domain}" "${plist}"
+echo "Loaded ${service}, its log is ${log}"
+'''
+
 [tasks.icons]
 description = "Render the app icon's PNGs from internal/phonedoor/static/icon.svg (resvg)"
 tools.resvg = "latest"
