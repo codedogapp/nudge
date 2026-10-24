@@ -25,8 +25,9 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | `ci-baseline` | CI with mise, SonarQube Cloud and jactionlint; Renovate came with its onboarding pull request (#2) | Done (#4) |
 | `go-toolchain` | The Go module, golangci-lint with the gates, the coverage gate and `mise run check`, with the first package: a question, its answer and the wait between them | Done (#5) |
 | `agent-door` | `nudge serve` on the agent socket: a question waits there for its answer as long as its request | Done (#6) |
-| `ask-cli` | `nudge ask`; check that a `nudge ask` that has moved to the background wakes the agent when it ends (risk 1) | In review (#7) |
-| `answer-page` | The page behind the phone door: the pending questions and their answer forms, and the Tailscale lock; `docs/setup.md` for `tailscale serve` | |
+| `ask-cli` | `nudge ask`; check that a `nudge ask` that has moved to the background wakes the agent when it ends (risk 1) | Done (#7) |
+| `phone-door` | `nudge serve` opens the phone door behind the Tailscale lock, with a page that lists the pending questions; `docs/setup.md` for `tailscale serve` | In review (#8) |
+| `answer-form` | The answer forms on the page and `POST /questions/{id}/answer`, the CSS, and the security headers | |
 | `pwa` | The manifest and the icons, so the iPhone can add nudge to its Home Screen | |
 | `push-subscribe` | The service worker, a button that turns notifications on, the subscriptions file, the VAPID key, and the web gates | |
 | `push-send` | A Web Push for each new question; a tap opens it; gone devices are forgotten; tried on the iPhone and the Mac (risk 2) | |
@@ -75,7 +76,7 @@ sequenceDiagram
 - **`nudge ask [--option TEXT]... [--details TEXT] QUESTION`** sends the question, with the name of the current directory as its project, through the agent socket. It waits for the answer, prints it as an `option: …` line and a `text: …` line, each only when it has a value, and exits 0. It exits 1 on an error, for example when the server isn't running or stops, and 2 on a usage error. When it ends early (Ctrl-C, or killed), the question goes away.
 - **`nudge serve`** is one process with two doors (decision 4):
   - The **agent door** is a Unix socket, `~/Library/Application Support/nudge/agent.sock`, in a folder with mode 0700: `nudge serve` makes the folder, and refuses one that others can open; `NUDGE_SOCKET` overrides the path. `POST /questions` holds the request open until the answer arrives or the client leaves, so a question lives exactly as long as its request (decision 5).
-  - The **phone door** is `127.0.0.1:8700` (`NUDGE_LISTEN` overrides it), which `tailscale serve --bg --https=8443 8700` publishes as `https://<mac>.<tailnet>.ts.net:8443` (decision 7). Every request needs the `Tailscale-User-Login` header that `tailscale serve` adds, equal to `NUDGE_LOGIN` from `mise.local.toml`; anything else gets 403. No cookies and no sign-in.
+  - The **phone door** is `127.0.0.1:8700` (`NUDGE_LISTEN` overrides it), which `tailscale serve --bg --https=8443 8700` publishes as `https://<mac>.<tailnet>.ts.net:8443` (decision 7). Every request needs the `Tailscale-User-Login` header that `tailscale serve` adds, equal to `NUDGE_LOGIN` from `mise.local.toml`, and a `Host` that is `NUDGE_HOST` once its port is dropped (decision 8); anything else gets 403. No cookies and no sign-in.
 - **The page.** `GET /` lists the pending questions, newest first, each with its project, text and details, a button per option and a box for a reply. `POST /questions/{id}/answer` answers one and redirects back to the list. The server renders the HTML (decision 6), and `http.CrossOriginProtection` guards the forms. An answered question leaves the list.
 - **Push.** Each new question sends a Web Push to every subscribed device, titled with the project, with the question as its text; a tap opens the question on the page. The VAPID private key lives in the login Keychain (service `nudge`, account `vapid-private-key`). The subscriptions live in `~/Library/Application Support/nudge/subscriptions.json`, mode 0600, the only state on disk. A device is forgotten when its push service answers 404 or 410.
 - **Running.** A launchd agent starts `nudge serve` at login and restarts it if it stops. The Mac must stay awake while the agent works: Copilot CLI's `/keep-alive on`. A MacBook on battery still sleeps when its lid closes.
@@ -90,6 +91,7 @@ sequenceDiagram
 5. **A question lives as long as its request**: no polling, no store, nothing to clean up. When the server stops, `nudge ask` fails and the agent asks again.
 6. **The server renders the pages**: the forms work without JavaScript, and the Go tests cover them. JavaScript only where Web Push needs it.
 7. **An origin of its own**: port 8443 of the Mac's tailnet name (fact 7). nudge gets its own service worker, push subscriptions and Home Screen app, next to Bakhyard on port 443. It ignores the Bakhyard cookie it receives.
+8. **A `Host` check keeps out DNS rebinding**, as in Bakhyard's lock: the phone door also needs the request's `Host`, without its port and in any case, to be `NUDGE_HOST`. A browser sends the name from its address bar, so a page that rebinds its own name to 127.0.0.1 is refused. `tailscale serve` passes the browser's `Host` on to a TCP backend, `:8443` included (checked live in `phone-door`), but sends `localhost` to a Unix socket (`ipn/ipnlocal/serve.go` in Tailscale 1.104.2). So the phone door stays on TCP: a socket would lose the name.
 
 ## 5. Risks
 
@@ -97,7 +99,7 @@ sequenceDiagram
 2. **Web Push on port 8443** hasn't been tried on the iPhone. Checked in `push-send`. Fallback: a Tailscale Service name (fact 6).
 3. **A sleeping Mac** stops the agent and nudge, so the phone gets nothing new.
 4. **Push is best effort**: a notification can come late or not at all. The page always lists every pending question.
-5. **Local processes** can reach `127.0.0.1:8700` with a forged `Tailscale-User-Login` header and answer a question. They are trusted, as in Bakhyard. A web page in a browser on the Mac could do the same through DNS rebinding, which open question 5 closes.
+5. **Local processes** can reach `127.0.0.1:8700` with a forged `Tailscale-User-Login` header and answer a question. They are trusted, as in Bakhyard. A web page in a browser on the Mac could try the same through DNS rebinding; the `Host` check refuses it (decision 8).
 6. **Floating tool versions**: mise tools use `latest` with no lockfile, so a new release (for example, a new jactionlint rule) can turn CI red with no change in the repo. A local run may also use an older version than CI until `mise upgrade --local`. When CI turns red for no reason, check the tool versions first.
 
 ## 6. Open questions
@@ -106,7 +108,6 @@ sequenceDiagram
 2. How the VAPID key gets into the Keychain: a `security` command in `docs/setup.md`, or `nudge serve` making it on its first start. Decided in `push-subscribe`.
 3. How `nudge` gets onto the agent's `PATH`: `go install` or mise. Decided in `launchd`.
 4. Where the agent's rule lives: the user's global instructions for Copilot CLI, or each repo's AGENTS.md. Decided in `agent-rule`.
-5. How the phone door keeps out DNS rebinding (risk 5): a check that the `Host` header is the Mac's tailnet name, or a Unix socket, which `tailscale serve unix:<path>` can reach and a browser can't (not tried with the Mac's Tailscale app). Decided in `answer-page`.
 
 ## 7. Sources
 
@@ -115,6 +116,7 @@ sequenceDiagram
 - Copilot CLI 1.0.98: its shell tool's description, and the test on 2026-10-24 (fact 3).
 - [codedogapp/bakhyard `docs/plan.md` §2](https://github.com/codedogapp/bakhyard/blob/main/docs/plan.md#2-feasibility) (fact 4).
 - [SherClockHolmes/webpush-go](https://github.com/SherClockHolmes/webpush-go) (fact 5).
-- `tailscale serve --help` (fact 6, open question 5).
+- `tailscale serve --help` (fact 6).
+- Tailscale 1.104.2 [`ipn/ipnlocal/serve.go`](https://github.com/tailscale/tailscale/blob/v1.104.2/ipn/ipnlocal/serve.go): the `Host` that `tailscale serve` sends on (decision 8).
 - [RFC 6265 §8.5](https://www.rfc-editor.org/rfc/rfc6265#section-8.5) (fact 7).
 - `man 4 unix` on macOS (fact 8).

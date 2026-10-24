@@ -13,6 +13,7 @@ import (
 
 	"github.com/codedogapp/nudge/internal/agentdoor"
 	"github.com/codedogapp/nudge/internal/inbox"
+	"github.com/codedogapp/nudge/internal/server"
 )
 
 // pipes is a net.Listener whose connections are in-memory pipes. A server on it can run in a
@@ -53,10 +54,10 @@ func (*pipes) Addr() net.Addr {
 
 // dial connects to the listener, as http.Transport.DialContext.
 func (p *pipes) dial(ctx context.Context, _, _ string) (net.Conn, error) {
-	client, server := net.Pipe()
+	client, accepted := net.Pipe()
 
 	select {
-	case p.conns <- server:
+	case p.conns <- accepted:
 		return client, nil
 	case <-p.closed:
 		return nil, net.ErrClosed
@@ -78,7 +79,8 @@ type reply struct {
 	err    error
 }
 
-// serve runs Serve until ctx ends. At the end of the test, it checks that Serve returned nil.
+// serve serves the agent door until ctx ends. At the end of the test, it checks that server.Serve
+// returned nil.
 func serve(ctx context.Context, t *testing.T) *door {
 	t.Helper()
 
@@ -86,7 +88,7 @@ func serve(ctx context.Context, t *testing.T) *door {
 	agent := &door{client: &http.Client{Transport: &http.Transport{DialContext: listener.dial}}}
 	served := make(chan error, 1)
 
-	go func() { served <- agentdoor.Serve(ctx, listener, &agent.box) }()
+	go func() { served <- server.Serve(ctx, listener, agentdoor.Routes(&agent.box)) }()
 
 	t.Cleanup(func() {
 		if err := <-served; err != nil {

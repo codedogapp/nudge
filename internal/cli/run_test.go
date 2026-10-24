@@ -71,6 +71,8 @@ func TestRunNeedsTheSocketsPath(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.args[0], func(t *testing.T) {
+			configure(t)
+
 			for _, name := range []string{"NUDGE_SOCKET", "HOME", "XDG_CONFIG_HOME"} {
 				t.Setenv(name, "")
 			}

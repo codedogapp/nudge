@@ -1,3 +1,5 @@
+// Package agentdoor is nudge's door for agents: a Unix socket where each question waits for its
+// answer.
 package agentdoor
 
 import (
@@ -11,7 +13,9 @@ import (
 // maxQuestion caps a question's body: a few lines of text, and details of a few pages.
 const maxQuestion = 64 << 10
 
-func routes(box *inbox.Inbox) http.Handler {
+// Routes returns the agent door's handler. Serve it with server.Serve: when its context ends, the
+// questions that wait end too, with 503.
+func Routes(box *inbox.Inbox) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /questions", func(w http.ResponseWriter, r *http.Request) {
 		ask(w, r, box)

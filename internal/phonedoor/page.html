@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>nudge</title>
+</head>
+<body>
+<h1>nudge</h1>
+{{- range .}}
+<article>
+{{- with .Project}}
+<p>{{.}}</p>
+{{- end}}
+<h2>{{.Text}}</h2>
+{{- with .Details}}
+<p>{{.}}</p>
+{{- end}}
+{{- with .Options}}
+<ul>
+{{- range .}}
+<li>{{.}}</li>
+{{- end}}
+</ul>
+{{- end}}
+</article>
+{{- else}}
+<p>No question waits for an answer.</p>
+{{- end}}
+</body>
+</html>
