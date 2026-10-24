@@ -11,20 +11,6 @@ import (
 // maxQuestion caps a question's body: a few lines of text, and details of a few pages.
 const maxQuestion = 64 << 10
 
-// question is a question as nudge ask sends it.
-type question struct {
-	Project string   `json:"project"`
-	Text    string   `json:"text"`
-	Details string   `json:"details"`
-	Options []string `json:"options"`
-}
-
-// answer is an answer as nudge ask receives it.
-type answer struct {
-	Option string `json:"option"`
-	Text   string `json:"text"`
-}
-
 func routes(box *inbox.Inbox) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /questions", func(w http.ResponseWriter, r *http.Request) {
@@ -36,7 +22,7 @@ func routes(box *inbox.Inbox) http.Handler {
 
 // ask holds the request until the question has an answer, the client leaves or the server stops.
 func ask(w http.ResponseWriter, r *http.Request, box *inbox.Inbox) {
-	var asked question
+	var asked Question
 
 	body := http.MaxBytesReader(w, r.Body, maxQuestion)
 	if err := json.UnmarshalRead(body, &asked, json.RejectUnknownMembers(true)); err != nil {
@@ -55,7 +41,7 @@ func ask(w http.ResponseWriter, r *http.Request, box *inbox.Inbox) {
 	case err == nil:
 		w.Header().Set("Content-Type", "application/json")
 		// A reply typed with invalid UTF-8 still gets through, with U+FFFD in its place.
-		_ = json.MarshalWrite(w, answer(got), jsontext.AllowInvalidUTF8(true))
+		_ = json.MarshalWrite(w, Answer(got), jsontext.AllowInvalidUTF8(true))
 	case r.Context().Err() == nil:
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	default:
