@@ -3,6 +3,7 @@
 package phonedoor
 
 import (
+	// embed fills page with page.html, through the go:embed directive below.
 	_ "embed"
 	"html/template"
 	"net/http"
