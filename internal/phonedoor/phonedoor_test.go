@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 	"testing/synctest"
+	"uuid"
 
 	"github.com/codedogapp/nudge/internal/inbox"
 	"github.com/codedogapp/nudge/internal/phonedoor"
@@ -55,6 +56,10 @@ func TestPageListsTheQuestionsNewestFirst(t *testing.T) {
 			t.Errorf("Content-Type = %q, want text/html; charset=utf-8", got)
 		}
 
+		if got := rec.Header().Get("Cache-Control"); got != "no-store" {
+			t.Errorf("Cache-Control = %q, want no-store", got)
+		}
+
 		body := rec.Body.String()
 		want := []string{
 			"bakhyard",
@@ -84,7 +89,7 @@ func TestPageEscapesTheQuestions(t *testing.T) {
 			Project: "<i>nudge</i>",
 			Text:    "<script>alert(1)</script>",
 			Details: `"a" & 'b'`,
-			Options: []string{"<b>Yes</b>"},
+			Options: []string{"<b>Yes</b>", `"No"`},
 		})
 
 		body := get(t, box, http.MethodGet, "/").Body.String()
@@ -100,9 +105,46 @@ func TestPageEscapesTheQuestions(t *testing.T) {
 			"&lt;script&gt;alert(1)&lt;/script&gt;",
 			"&#34;a&#34; &amp; &#39;b&#39;",
 			"&lt;b&gt;Yes&lt;/b&gt;",
+			`value="&#34;No&#34;"`,
 		} {
 			if !strings.Contains(body, escaped) {
 				t.Errorf("page = %s, want it to contain %q", body, escaped)
+			}
+		}
+	})
+}
+
+func TestPageHasAFormPerQuestion(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		box := waiting(t,
+			inbox.Question{Text: "Merge?", Options: []string{"Squash", "Rebase"}},
+			inbox.Question{Text: "Deploy?"},
+		)
+
+		body := get(t, box, http.MethodGet, "/").Body.String()
+
+		for _, question := range box.Pending() {
+			want := `<form method="post" action="/questions/` + question.ID.String() + `/answer">`
+			if !strings.Contains(body, want) {
+				t.Errorf("page = %s, want it to contain %s", body, want)
+			}
+		}
+
+		for _, want := range []string{
+			`<button name="option" value="Squash" formnovalidate>Squash</button>`,
+			`<button name="option" value="Rebase" formnovalidate>Rebase</button>`,
+		} {
+			if !strings.Contains(body, want) {
+				t.Errorf("page = %s, want it to contain %s", body, want)
+			}
+		}
+
+		for _, want := range []string{
+			`<textarea name="text" required></textarea>`,
+			`<button>Send the reply</button>`,
+		} {
+			if got := strings.Count(body, want); got != len(box.Pending()) {
+				t.Errorf("page = %s, want %s once per question, got %d", body, want, got)
 			}
 		}
 	})
@@ -117,7 +159,7 @@ func TestPageSaysWhenNoQuestionWaits(t *testing.T) {
 	}
 }
 
-func TestDoorServesOnlyThePage(t *testing.T) {
+func TestDoorServesOnlyItsRoutes(t *testing.T) {
 	tests := []struct {
 		method, path string
 		want         int
@@ -125,6 +167,11 @@ func TestDoorServesOnlyThePage(t *testing.T) {
 		{http.MethodHead, "/", http.StatusOK},
 		{http.MethodPost, "/", http.StatusMethodNotAllowed},
 		{http.MethodGet, "/questions", http.StatusNotFound},
+		{
+			http.MethodGet,
+			"/questions/" + uuid.New().String() + "/answer",
+			http.StatusMethodNotAllowed,
+		},
 	}
 
 	for _, test := range tests {

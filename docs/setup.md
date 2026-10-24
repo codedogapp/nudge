@@ -51,3 +51,5 @@ mise run serve
 ```sh
 go run . ask --option Yes --option No "Merge the pull request?"
 ```
+
+Answer it on the page: tap an option, send a reply, or type a reply and then tap an option to send both. `nudge ask` prints the answer and exits 0.
