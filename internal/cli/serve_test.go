@@ -13,13 +13,27 @@ import (
 	"github.com/codedogapp/nudge/internal/cli"
 )
 
-// configure sets nudge serve's settings, with the phone door on a free loopback port.
+// configure sets nudge serve's settings, with the phone door on a free loopback port, and gives it
+// a Keychain that holds a VAPID key.
 func configure(t *testing.T) {
 	t.Helper()
 
 	t.Setenv("NUDGE_LOGIN", "user@example.com")
 	t.Setenv("NUDGE_HOST", "machine.tailnet.ts.net")
 	t.Setenv("NUDGE_LISTEN", "127.0.0.1:0")
+	standIn(t, "keychain")
+}
+
+// standIn points NUDGE_SECURITY at the stand-in security tool in testdata/dir.
+func standIn(t *testing.T, dir string) {
+	t.Helper()
+
+	abs, err := filepath.Abs(filepath.Join("testdata", dir, "security"))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	t.Setenv("NUDGE_SECURITY", abs)
 }
 
 func assertGone(t *testing.T, path string) {
@@ -83,6 +97,25 @@ func TestServeNeedsItsSettings(t *testing.T) {
 			assertGone(t, path)
 		})
 	}
+}
+
+func TestServeNeedsItsKey(t *testing.T) {
+	path := socketIn(t)
+	configure(t)
+	standIn(t, "locked")
+
+	var stdout, stderr strings.Builder
+
+	code := cli.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
+
+	want := "nudge serve: read the VAPID key from the Keychain " +
+		"(service nudge, account vapid-private-key): exit status 36: " +
+		"security: SecKeychainSearchCopyNext: User interaction is not allowed.\n"
+	if code != 1 || stderr.String() != want {
+		t.Errorf("Run(serve) = %d, stderr = %q, want 1 and %q", code, stderr.String(), want)
+	}
+
+	assertGone(t, path)
 }
 
 func TestServeNeedsThePhoneDoorsAddress(t *testing.T) {

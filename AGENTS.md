@@ -79,7 +79,7 @@ Never report a step as done before `mise run check` has passed, and say which ga
 - **Nothing deprecated.** Never use a deprecated tool, API, endpoint, parameter, field or flag; use its replacement. Check the source's deprecation notes before picking one.
 - **Go**: the latest release. Before editing Go code, run the `use-modern-go` skill's `list` for the file and follow its guidelines.
 - **Go lint and format**: golangci-lint, based on the user's labrys config; gofumpt and golines at 100 columns.
-- **Web**: pages rendered by the server with `html/template`, plain CSS, and only the JavaScript that Web Push needs (the service worker and the subscription). Its gates arrive with the first JavaScript file (plan §6).
+- **Web**: pages rendered by the server with `html/template`, plain CSS, and only the JavaScript that Web Push needs (the service worker and the subscription). Its gates are Biome and Node's test runner, with no npm (plan decision 12); they arrive with the first JavaScript file.
 - **Mirror the user's repos** before inventing a convention: Bakhyard (this file, CI, gates), labrys (Go lint) and jirascrap (CI, Sonar, Renovate).
 
 ## Quality gates

@@ -69,7 +69,7 @@ func form(t *testing.T, path string, values url.Values) *http.Request {
 
 func serve(box *inbox.Inbox, req *http.Request) *httptest.ResponseRecorder {
 	rec := httptest.NewRecorder()
-	phonedoor.Routes(box).ServeHTTP(rec, req)
+	phonedoor.Routes(box, pushKey).ServeHTTP(rec, req)
 
 	return rec
 }

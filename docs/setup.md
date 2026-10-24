@@ -17,6 +17,7 @@ NUDGE_HOST = "machine.tailnet.ts.net"
 | `NUDGE_LOGIN` | The one Tailscale login let in | `nudge serve` exits 1 |
 | `NUDGE_HOST` | The Mac's ts.net name, which `tailscale serve` publishes, without the trailing dot | `nudge serve` exits 1 |
 | `NUDGE_LISTEN` | The phone door's address. Keep it on loopback: anyone who reaches it can send the headers that the lock checks | `127.0.0.1:8700` |
+| `NUDGE_SECURITY` | The `security` tool that keeps the VAPID key. Only the tests change it, to point at a stand-in | `/usr/bin/security` |
 | `NUDGE_SOCKET` | The agent door's socket, for both `nudge serve` and `nudge ask` | `~/Library/Application Support/nudge/agent.sock` |
 
 Tailscale knows the login and the name:
@@ -53,6 +54,22 @@ go run . ask --option Yes --option No "Merge the pull request?"
 ```
 
 Answer it on the page: tap an option, send a reply, or type a reply and then tap an option to send both. `nudge ask` prints the answer and exits 0.
+
+## The VAPID key
+
+`nudge serve` signs its Web Pushes with a VAPID key. On its first start, it makes one and adds it to the login Keychain as service `nudge`, account `vapid-private-key`; later starts read it from there ([the plan](plan.md), decision 11). To print it:
+
+```sh
+security find-generic-password -s nudge -a vapid-private-key -w
+```
+
+`nudge serve` never replaces the key. For a new one, delete it and start `nudge serve` again; every device must then turn its notifications on again:
+
+```sh
+security delete-generic-password -s nudge -a vapid-private-key
+```
+
+When `security` fails, for example on a locked Keychain that can't ask for its password, or the stored key isn't valid, `nudge serve` exits 1 and says why.
 
 ## The Home Screen
 

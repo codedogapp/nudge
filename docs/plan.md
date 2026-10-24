@@ -29,8 +29,10 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | `phone-door` | `nudge serve` opens the phone door behind the Tailscale lock, with a page that lists the pending questions; `docs/setup.md` for `tailscale serve` | Done (#8) |
 | `answer-form` | The answer forms on the page and `POST /questions/{id}/answer`, with `http.CrossOriginProtection` and the security headers | Done (#9) |
 | `page-style` | The page's CSS, in Bakhyard's look with system fonts (decision 9) | Done (#10) |
-| `pwa` | The manifest, the icons, `theme-color` and the safe areas, so the iPhone can add nudge to its Home Screen (decision 10) | In review (#11) |
-| `push-subscribe` | The service worker, a button that turns notifications on, the subscriptions file, the VAPID key, and the web gates | |
+| `pwa` | The manifest, the icons, `theme-color` and the safe areas, so the iPhone can add nudge to its Home Screen (decision 10) | Done (#11) |
+| `vapid-key` | `nudge serve` makes its VAPID key on its first start and keeps it in the login Keychain; the page carries the public half (decision 11) | In review (#12) |
+| `subscriptions` | The subscriptions file, and `POST /subscriptions` to add a device | |
+| `push-button` | The service worker, a button that turns notifications on, and the web gates (decision 12) | |
 | `push-send` | A Web Push for each new question; a tap opens it; gone devices are forgotten; tried on the iPhone and the Mac (risk 2) | |
 | `launchd` | `nudge serve` as a launchd agent, and `nudge` on the agent's `PATH` | |
 | `agent-rule` | The agent's rule to ask every question through `nudge ask` | |
@@ -81,7 +83,7 @@ sequenceDiagram
 - **The page.** `GET /` lists the pending questions, newest first, each with its project, text and details, a button per option and a box for a reply. `POST /questions/{id}/answer` answers one and redirects back to the list. An option's button sends the reply in the box along with it; "Send the reply" sends the reply alone. A refused answer shows the list again with the reason: 404 when the question has gone (answered, or its agent stopped waiting), 400 for an empty answer, an option the question doesn't offer, or a form over 64 KiB. The server renders the HTML (decision 6), and `http.CrossOriginProtection` guards the forms. Behind the lock, every response has a Content Security Policy that allows nothing but the page's stylesheet, its grain, its icons and its manifest, and posting forms to the page itself (`default-src 'none'; style-src 'self'; img-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'`), `X-Content-Type-Options: nosniff` and `Referrer-Policy: same-origin`; browsers don't store the page (`Cache-Control: no-store`). An answered question leaves the list.
 - **The look** (decision 9): Bakhyard's colour tokens, paper grain, cards and buttons, with system fonts: `system-ui` for text, and a monospace stack for labels and buttons. The OS picks light or dark. Each question is a card with its project as a label, its text as the title, and its details with their line breaks kept; the options are secondary buttons and "Send the reply" the primary one. `GET /style.css` and `GET /grain.svg` serve the two embedded files with `Cache-Control: no-cache`, so a new binary's look shows at once.
 - **The Home Screen** (decision 10): Safari's Share → Add to Home Screen makes the page an app, which opens without Safari's bars. The page links its icon (`/icon.svg`, and `/apple-touch-icon.png` at 180 px for iOS) and `/manifest.json` (`.json`, because Go's MIME table has no `.webmanifest`), which names the app, opens `/` in `standalone` mode and lists 192 and 512 px icons. The browser's bar takes the header's paper (`theme-color` per colour scheme), and the page keeps clear of a phone's notch and status bar (`viewport-fit=cover` with the safe-area insets). These files are embedded like the stylesheet, with `no-cache`; `mise run icons` renders the PNGs from `icon.svg` with resvg, and they are committed.
-- **Push.** Each new question sends a Web Push to every subscribed device, titled with the project, with the question as its text; a tap opens the question on the page. The VAPID private key lives in the login Keychain (service `nudge`, account `vapid-private-key`). The subscriptions live in `~/Library/Application Support/nudge/subscriptions.json`, mode 0600, the only state on disk. A device is forgotten when its push service answers 404 or 410.
+- **Push.** Each new question sends a Web Push to every subscribed device, titled with the project, with the question as its text; a tap opens the question on the page. `nudge serve` reads the VAPID private key from the login Keychain (service `nudge`, account `vapid-private-key`) when it starts, and on its first start makes one and adds it there (decision 11); a key it can't read, or one that isn't valid, stops it. The page carries the public half in `<body data-push-key>`, for the browser to subscribe with. The subscriptions live in `~/Library/Application Support/nudge/subscriptions.json`, mode 0600, the only state on disk. A device is forgotten when its push service answers 404 or 410.
 - **Running.** A launchd agent starts `nudge serve` at login and restarts it if it stops. The Mac must stay awake while the agent works: Copilot CLI's `/keep-alive on`. A MacBook on battery still sleeps when its lid closes.
 - **The agent's rule** (step `agent-rule`): ask every question through `nudge ask`, in the shell, in the foreground, with the longest wait. When the command moves to the background, end the turn and say so; its end brings the answer.
 
@@ -97,6 +99,8 @@ sequenceDiagram
 8. **A `Host` check keeps out DNS rebinding**, as in Bakhyard's lock: the phone door also needs the request's `Host`, without its port and in any case, to be `NUDGE_HOST`. A browser sends the name from its address bar, so a page that rebinds its own name to 127.0.0.1 is refused. `tailscale serve` passes the browser's `Host` on to a TCP backend, `:8443` included (checked live in `phone-door`), but sends `localhost` to a Unix socket (`ipn/ipnlocal/serve.go` in Tailscale 1.104.2). So the phone door stays on TCP: a socket would lose the name.
 9. **Bakhyard's look, with system fonts**: the user's choice. The page takes the tokens, cards, buttons and paper grain of Bakhyard's visual identity (its plan §7), so the two apps look like siblings, but no font files: system fonts keep nudge one small binary with nothing else to load.
 10. **The icon is a question card**: the user's choice of three drafts. In Bakhyard's style, on a 16-unit grid: on paper, an ink card with its hard shadow, a question line and two option buttons. Its paper fills the square, so iOS's rounded corners crop only paper. `theme-color` is the header's paper (`#fafaf8`, `#131312` in dark mode), where Bakhyard's is its ink top bar, because nudge's header is paper.
+11. **`nudge serve` makes its VAPID key**: the user's choice, over a `security` command in `docs/setup.md`. On its first start, it makes a P-256 key and adds it to the login Keychain with `security -i`, which reads the command from stdin, as zalando/go-keyring does, so the key never shows in a process's arguments. It reads the key back to check it. It never replaces a stored key (no `-U`), and a stored key that isn't valid stops it, so the subscriptions never break silently. Deleting the item makes a new key at the next start, and every device must subscribe again. It runs `/usr/bin/security` by its absolute path, so nothing on `PATH` can stand in for it (SonarQube Cloud rule `go:S4036`); `NUDGE_SECURITY` points the tests at a stand-in. That makes the program a variable, so gosec's G204 is suppressed at the one call, with the user's OK, as in Bakhyard. Local processes are trusted (risk 5).
+12. **Lean web gates**: the user's choice. Biome's own binary and Node's built-in test runner, both through mise, with no npm, `package.json`, lockfile or `node_modules`. The tests run the page's scripts against small hand-written fakes of the browser APIs. Node measures the coverage, fails below the thresholds with its `--test-coverage-*` flags, and writes lcov for SonarQube Cloud; Node 26 still calls its coverage experimental. The gates arrive with the first JavaScript file, in `push-button`.
 
 ## 5. Risks
 
@@ -109,10 +113,8 @@ sequenceDiagram
 
 ## 6. Open questions
 
-1. The web gates for the JavaScript: Biome for lint and format, and how to test the service worker and measure its coverage. Decided in `push-subscribe`.
-2. How the VAPID key gets into the Keychain: a `security` command in `docs/setup.md`, or `nudge serve` making it on its first start. Decided in `push-subscribe`.
-3. How `nudge` gets onto the agent's `PATH`: `go install` or mise. Decided in `launchd`.
-4. Where the agent's rule lives: the user's global instructions for Copilot CLI, or each repo's AGENTS.md. Decided in `agent-rule`.
+1. How `nudge` gets onto the agent's `PATH`: `go install` or mise. Decided in `launchd`.
+2. Where the agent's rule lives: the user's global instructions for Copilot CLI, or each repo's AGENTS.md. Decided in `agent-rule`.
 
 ## 7. Sources
 
@@ -120,7 +122,10 @@ sequenceDiagram
 - [GitHub Copilot hooks reference](https://docs.github.com/en/copilot/reference/hooks-reference) (fact 2).
 - Copilot CLI 1.0.98: its shell tool's description, and the test on 2026-10-24 (fact 3).
 - [codedogapp/bakhyard `docs/plan.md` §2](https://github.com/codedogapp/bakhyard/blob/main/docs/plan.md#2-feasibility) (fact 4).
-- [SherClockHolmes/webpush-go](https://github.com/SherClockHolmes/webpush-go) (fact 5).
+- [SherClockHolmes/webpush-go](https://github.com/SherClockHolmes/webpush-go) (fact 5), and its [`vapid.go`](https://github.com/SherClockHolmes/webpush-go/blob/v1.4.0/vapid.go) in v1.4.0: both halves of the VAPID key in base64url without padding (decision 11).
+- `man security` on macOS, and tests on 2026-10-24: `find-generic-password` exits 44 when the item isn't there, `security -i` exits with the failed command's code, and `-w` takes a password that starts with `-` (decision 11).
+- zalando/go-keyring v0.2.8 [`keyring_darwin.go`](https://github.com/zalando/go-keyring/blob/v0.2.8/keyring_darwin.go): `add-generic-password` through `security -i`, on stdin (decision 11).
+- Node.js [test runner](https://nodejs.org/api/test.html) and [command-line options](https://nodejs.org/api/cli.html): coverage, its thresholds and the lcov reporter (decision 12).
 - `tailscale serve --help` (fact 6).
 - Tailscale 1.104.2 [`ipn/ipnlocal/serve.go`](https://github.com/tailscale/tailscale/blob/v1.104.2/ipn/ipnlocal/serve.go): the `Host` that `tailscale serve` sends on (decision 8).
 - [RFC 6265 §8.5](https://www.rfc-editor.org/rfc/rfc6265#section-8.5) (fact 7).

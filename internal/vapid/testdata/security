@@ -1,0 +1,36 @@
+#!/bin/sh
+# A stand-in for macOS's security tool in the tests. It keeps one item in the file $FAKE_ITEM, logs
+# the arguments of each run to $FAKE_ARGS, and misbehaves as $FAKE_MODE says:
+#   fail    every command fails;
+#   refuse  adding fails, as when the item is already there;
+#   drop    adding stores nothing, but reports success;
+#   swap    adding stores another key.
+printf '%s\n' "$*" >>"$FAKE_ARGS"
+
+if [ "$FAKE_MODE" = fail ]; then
+	echo 'security: boom' >&2
+	exit 51
+fi
+
+case "$1" in
+find-generic-password)
+	if [ ! -f "$FAKE_ITEM" ]; then
+		echo 'security: SecKeychainSearchCopyNext: The specified item could not be found in the keychain.' >&2
+		exit 44
+	fi
+	read -r stored <"$FAKE_ITEM"
+	printf '%s\n' "$stored"
+	;;
+-i)
+	read -r command
+	case "$FAKE_MODE" in
+	refuse)
+		echo 'security: SecKeychainItemCreateFromContent: The specified item already exists in the keychain.' >&2
+		exit 45
+		;;
+	drop) ;;
+	swap) echo AQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQE >"$FAKE_ITEM" ;;
+	*) printf '%s\n' "${command##* }" >"$FAKE_ITEM" ;;
+	esac
+	;;
+esac
