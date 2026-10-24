@@ -5,8 +5,8 @@ import (
 	"net/http"
 )
 
-// static holds the files that the door serves as they are: the page's look, its icons and its
-// manifest.
+// static holds the files that the door serves as they are: the page's look, its icons, its
+// manifest and its scripts.
 //
 //go:embed static
 var static embed.FS
@@ -16,14 +16,14 @@ var static embed.FS
 func serveStatic(mux *http.ServeMux) {
 	for _, name := range []string{
 		"style.css", "grain.svg", "icon.svg", "apple-touch-icon.png", "icon-192.png",
-		"icon-512.png", "manifest.json",
+		"icon-512.png", "manifest.json", "main.js", "push.js", "sw.js",
 	} {
 		mux.HandleFunc("GET /"+name, asset(name))
 	}
 }
 
-// asset serves the embedded file name. A new binary can bring a new look, so browsers check it
-// each time.
+// asset serves the embedded file name. A new binary can bring a new look or new scripts, so
+// browsers check it each time.
 func asset(name string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Cache-Control", "no-cache")

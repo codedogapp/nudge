@@ -21,6 +21,9 @@ func TestDoorServesItsFiles(t *testing.T) {
 		{"icon-192.png", "image/png"},
 		{"icon-512.png", "image/png"},
 		{"manifest.json", "application/json"},
+		{"main.js", "text/javascript; charset=utf-8"},
+		{"push.js", "text/javascript; charset=utf-8"},
+		{"sw.js", "text/javascript; charset=utf-8"},
 	}
 
 	for _, test := range tests {
@@ -62,6 +65,7 @@ func TestDoorServesNoOtherFile(t *testing.T) {
 		{http.MethodGet, "/favicon.ico", http.StatusNotFound},
 		{http.MethodGet, "/page.html", http.StatusNotFound},
 		{http.MethodGet, "/static.go", http.StatusNotFound},
+		{http.MethodGet, "/push.test.js", http.StatusNotFound},
 	}
 
 	for _, test := range tests {
@@ -85,6 +89,10 @@ func TestPageLinksItsFiles(t *testing.T) {
 		`<link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">`,
 		`<link rel="manifest" href="/manifest.json">`,
 		`<link rel="stylesheet" href="/style.css">`,
+		`<script type="module" src="/main.js"></script>`,
+		`<p id="push-state" class="push" hidden></p>`,
+		`<button id="push" class="push" type="button" hidden>Turn on notifications</button>`,
+		`<p id="push-failure" role="alert" hidden></p>`,
 	} {
 		if !strings.Contains(body, want) {
 			t.Errorf("page = %s, want it to contain %s", body, want)

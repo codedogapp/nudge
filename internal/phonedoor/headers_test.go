@@ -32,6 +32,7 @@ func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 			{"the grain", visit("/grain.svg"), http.StatusOK},
 			{"the icon", visit("/icon-192.png"), http.StatusOK},
 			{"the manifest", visit("/manifest.json"), http.StatusOK},
+			{"a script", visit("/push.js"), http.StatusOK},
 			{"a refusal", form(t, path, url.Values{"option": {"Merge"}}), http.StatusBadRequest},
 			{"a cross-origin post", crossSite, http.StatusForbidden},
 			{"a subscription", subscribing(t, browser), http.StatusNoContent},
@@ -41,8 +42,9 @@ func TestEveryResponseCarriesTheSecurityHeaders(t *testing.T) {
 		}
 
 		want := map[string]string{
-			"Content-Security-Policy": "default-src 'none'; style-src 'self'; img-src 'self'; " +
-				"manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+			"Content-Security-Policy": "default-src 'none'; script-src 'self'; style-src 'self'; " +
+				"img-src 'self'; manifest-src 'self'; connect-src 'self'; base-uri 'none'; " +
+				"form-action 'self'; frame-ancestors 'none'",
 			"X-Content-Type-Options": "nosniff",
 			"Referrer-Policy":        "same-origin",
 		}

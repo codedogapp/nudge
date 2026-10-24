@@ -11,12 +11,16 @@
 <link rel="apple-touch-icon" href="/apple-touch-icon.png" sizes="180x180">
 <link rel="manifest" href="/manifest.json">
 <link rel="stylesheet" href="/style.css">
+<script type="module" src="/main.js"></script>
 </head>
 <body data-push-key="{{.PushKey}}">
 <header>
 <h1>nudge</h1>
+<p id="push-state" class="push" hidden></p>
+<button id="push" class="push" type="button" hidden>Turn on notifications</button>
 </header>
 <main>
+<p id="push-failure" role="alert" hidden></p>
 {{- with .Refusal}}
 <p role="alert">{{.}}</p>
 {{- end}}
@@ -31,10 +35,10 @@
 {{- end}}
 <form method="post" action="/questions/{{.ID}}/answer">
 {{- range .Options}}
-<button name="option" value="{{.}}" formnovalidate>{{.}}</button>
+<button name="option" value="{{.}}" type="submit" formnovalidate>{{.}}</button>
 {{- end}}
 <label>Reply <textarea name="text" rows="3" required></textarea></label>
-<button class="primary">Send the reply</button>
+<button class="primary" type="submit">Send the reply</button>
 </form>
 </article>
 {{- else}}

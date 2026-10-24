@@ -1,14 +1,19 @@
 [tools]
+biome = "latest"
 "github:vladopajic/go-test-coverage" = "latest"
 go = "latest"
 "go:golang.org/x/vuln/cmd/govulncheck" = "latest"
 golangci-lint = "latest"
 jactionlint = "latest"
+node = "latest"
 shellcheck = "latest"
 
 [tasks.fmt]
-description = "Format the Go code (gofumpt, golines)"
-run = "golangci-lint fmt"
+description = "Format the Go code (gofumpt, golines) and the page's files (Biome)"
+run = [
+    "golangci-lint fmt",
+    "biome check --write",
+]
 
 [tasks."fmt:check"]
 description = "Fail if any Go file is not formatted"
@@ -21,6 +26,10 @@ run = [
     "golangci-lint run",
 ]
 
+[tasks."lint:web"]
+description = "Lint the page's files and check their formatting (Biome)"
+run = "biome ci --error-on-warnings"
+
 [tasks."lint:actions"]
 description = "Lint the GitHub Actions workflows (jactionlint, shellcheck)"
 run = "jactionlint --shellcheck=shellcheck"
@@ -28,6 +37,16 @@ run = "jactionlint --shellcheck=shellcheck"
 [tasks.test]
 description = "Run the Go tests with the race detector and write coverage.out"
 run = "go test -race -coverprofile=coverage.out ./..."
+
+[tasks."test:web"]
+description = "Run the page's script tests, fail below 80% of lines covered, write lcov.info"
+run = '''
+node --test --experimental-test-coverage \
+  --test-coverage-include='internal/phonedoor/static/*.js' --test-coverage-lines=80 \
+  --test-reporter=spec --test-reporter-destination=stdout \
+  --test-reporter=lcov --test-reporter-destination=lcov.info \
+  'internal/phonedoor/*.test.js'
+'''
 
 [tasks.cover]
 description = "Fail if test coverage is below the thresholds (go-test-coverage)"
@@ -40,7 +59,7 @@ run = "govulncheck ./..."
 
 [tasks.check]
 description = "Run the local quality gate"
-depends = ["fmt:check", "lint", "lint:actions", "cover", "vuln"]
+depends = ["fmt:check", "lint", "lint:web", "lint:actions", "cover", "test:web", "vuln"]
 
 [tasks.serve]
 description = "Run nudge serve from the source, with the settings in mise.local.toml"
