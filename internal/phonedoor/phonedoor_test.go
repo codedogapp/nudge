@@ -143,8 +143,8 @@ func TestPageHasAFormPerQuestion(t *testing.T) {
 		}
 
 		for _, want := range []string{
-			`<button name="option" value="Squash" formnovalidate>Squash</button>`,
-			`<button name="option" value="Rebase" formnovalidate>Rebase</button>`,
+			`<button name="option" value="Squash" type="submit" formnovalidate>Squash</button>`,
+			`<button name="option" value="Rebase" type="submit" formnovalidate>Rebase</button>`,
 		} {
 			if !strings.Contains(body, want) {
 				t.Errorf("page = %s, want it to contain %s", body, want)
@@ -153,7 +153,7 @@ func TestPageHasAFormPerQuestion(t *testing.T) {
 
 		for _, want := range []string{
 			`<textarea name="text" rows="3" required></textarea>`,
-			`<button class="primary">Send the reply</button>`,
+			`<button class="primary" type="submit">Send the reply</button>`,
 		} {
 			if got := strings.Count(body, want); got != len(box.Pending()) {
 				t.Errorf("page = %s, want %s once per question, got %d", body, want, got)
