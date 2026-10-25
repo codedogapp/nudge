@@ -21,8 +21,13 @@ const (
 	exitUsage = 2
 )
 
+// Program is nudge's command line.
+type Program struct {
+	Version string // The version that the build set, or empty.
+}
+
 // Run runs the command that args name until it ends or ctx ends, and returns its exit code.
-func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
+func (p Program) Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
 		return misused(stderr)
 	}
@@ -33,7 +38,7 @@ func Run(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	case "ask":
 		return ask(ctx, args[1:], stdout, stderr)
 	case "mcp":
-		return serveMCP(ctx, args[1:], &mcp.StdioTransport{}, stderr)
+		return p.serveMCP(ctx, args[1:], &mcp.StdioTransport{}, stderr)
 	default:
 		return misused(stderr)
 	}

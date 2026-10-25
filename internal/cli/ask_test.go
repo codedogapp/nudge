@@ -78,7 +78,7 @@ func TestAskSendsTheQuestion(t *testing.T) {
 		"CI is green.",
 		"Merge?",
 	}
-	if code := cli.Run(t.Context(), args, &stdout, &stderr); code != 0 {
+	if code := (cli.Program{}).Run(t.Context(), args, &stdout, &stderr); code != 0 {
 		t.Errorf("Run(ask) = %d, stderr = %q, want 0", code, stderr.String())
 	}
 
@@ -110,7 +110,7 @@ func TestAskPrintsTheAnswer(t *testing.T) {
 
 			var stdout, stderr strings.Builder
 
-			code := cli.Run(t.Context(), []string{"ask", "Merge?"}, &stdout, &stderr)
+			code := cli.Program{}.Run(t.Context(), []string{"ask", "Merge?"}, &stdout, &stderr)
 			if code != 0 || stdout.String() != test.want || stderr.Len() != 0 {
 				t.Errorf("Run(ask) = %d, stdout = %q, stderr = %q, want 0 and %q",
 					code, stdout.String(), stderr.String(), test.want)
@@ -146,7 +146,7 @@ func TestAskReportsARefusal(t *testing.T) {
 
 			var stdout, stderr strings.Builder
 
-			code := cli.Run(t.Context(), []string{"ask", "Merge?"}, &stdout, &stderr)
+			code := cli.Program{}.Run(t.Context(), []string{"ask", "Merge?"}, &stdout, &stderr)
 			if code != 1 || stderr.String() != test.want || stdout.Len() != 0 {
 				t.Errorf("Run(ask) = %d, stdout = %q, stderr = %q, want 1 and %q",
 					code, stdout.String(), stderr.String(), test.want)
@@ -160,7 +160,7 @@ func TestAskNeedsTheServer(t *testing.T) {
 
 	var stdout, stderr strings.Builder
 
-	code := cli.Run(t.Context(), []string{"ask", "Merge?"}, &stdout, &stderr)
+	code := cli.Program{}.Run(t.Context(), []string{"ask", "Merge?"}, &stdout, &stderr)
 	if want := "nudge ask: reach nudge serve: "; code != 1 ||
 		!strings.HasPrefix(stderr.String(), want) {
 		t.Errorf("Run(ask) = %d, stderr = %q, want 1 and %q", code, stderr.String(), want)
@@ -172,7 +172,7 @@ func TestAskReportsALostAnswer(t *testing.T) {
 
 	var stderr strings.Builder
 
-	code := cli.Run(t.Context(), []string{"ask", "Merge?"}, brokenPipe{}, &stderr)
+	code := cli.Program{}.Run(t.Context(), []string{"ask", "Merge?"}, brokenPipe{}, &stderr)
 	if want := "nudge ask: print the answer: " + io.ErrClosedPipe.Error() + "\n"; code != 1 ||
 		stderr.String() != want {
 		t.Errorf("Run(ask) = %d, stderr = %q, want 1 and %q", code, stderr.String(), want)
