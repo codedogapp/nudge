@@ -1,18 +1,26 @@
 # Setup
 
-How to install nudge on a Mac, what it needs before `nudge serve` can run (its settings, and `tailscale serve` to publish the phone door on the tailnet), and how to run it at login. [The plan](plan.md) says why (§3, decisions 7, 8 and 18 to 24). The last two sections add nudge to an agent, and give the agent the skill that sends its questions to the phone.
+How to install nudge on a Mac with Homebrew, what it needs before `nudge serve` can run (its settings, and `tailscale serve` to publish the phone door on the tailnet), and how to run it at login. [The plan](plan.md) says why (§3, decisions 7, 8, 23, 24 and 26 to 28). The last two sections add nudge to an agent, and give the agent the skill that sends its questions to the phone.
 
 ## Install
 
-mise installs nudge from its GitHub releases:
+Homebrew installs nudge from codedogapp's tap, [`codedogapp/homebrew-tap`](https://github.com/codedogapp/homebrew-tap):
 
 ```sh
-mise use -g github:codedogapp/nudge
+brew install codedogapp/tap/nudge
 ```
 
-mise checks the release's digest and its build provenance attestation before it installs it. When it looks for the newest release, it skips those less than 24 hours old (its `minimum_release_age` setting): add `--minimum-release-age 0s` to take a new one at once. `mise upgrade` takes the newest release later.
+The formula builds nudge from its tag's source on the Mac, so Homebrew installs Go for the build, or upgrades it.
 
-The binary is then `~/.local/share/mise/installs/github-codedogapp-nudge/latest/nudge`, a path that an upgrade keeps. Agents start it from there ([Agents](#agents)).
+Give every `brew` command the formula's full name, `codedogapp/tap/nudge`. Homebrew's own cask `nudge` is another app, and a bare `nudge` in `brew install`, `brew upgrade` or `brew info` means that cask. The full name in `brew install` also trusts the formula: Homebrew loads formulae from taps other than its own only once they're trusted ([the plan](plan.md), fact 14).
+
+`nudge` is then on the `PATH`. Homebrew also links it at `$(brew --prefix codedogapp/tap/nudge)/bin/nudge`, a path that stays the same across upgrades; agents start it from there ([Agents](#agents)). To take a new version:
+
+```sh
+brew upgrade codedogapp/tap/nudge
+```
+
+Then restart the service, which still runs the old one ([Run at login](#run-at-login)).
 
 ## Settings
 
@@ -27,7 +35,7 @@ The binary is then `~/.local/share/mise/installs/github-codedogapp-nudge/latest/
 | `NUDGE_SOCKET` | | The agent door's socket, for `nudge serve`, `nudge ask` and `nudge mcp`. It has no key, because `nudge ask` and `nudge mcp` read only the environment | `~/Library/Application Support/nudge/agent.sock` |
 | `NUDGE_SUBSCRIPTIONS` | `subscriptions` | The file that keeps the devices' push subscriptions. In the settings file, an absolute path | `~/Library/Application Support/nudge/subscriptions.json` |
 
-The settings file suits a service, which starts with no settings in its environment. It holds a JSON object:
+The settings file suits `brew services`, which starts `nudge serve` without the shell's variables ([Run at login](#run-at-login)). It holds a JSON object:
 
 ```json
 {
@@ -47,7 +55,7 @@ tailscale status --json |
 
 A missing file is fine. Invalid JSON, an unknown key, a key twice, a value that isn't a string, or a `subscriptions` path that isn't absolute stops `nudge serve` with a message that names the file.
 
-The variables suit a run from the checkout. They live in `mise.local.toml`, at the repo's root: git ignores it, and mise puts its `[env]` into every task's environment, so `mise run serve` and `mise run launchd` both get them.
+The variables suit a run from the checkout. They live in `mise.local.toml`, at the repo's root: git ignores it, and mise puts its `[env]` into every task's environment, so `mise run serve` gets them.
 
 ```toml
 [env]
@@ -71,36 +79,40 @@ tailscale serve --https=8443 off
 
 ## Run
 
+To try nudge, run `nudge serve` in a shell:
+
 ```sh
-mise run serve
+nudge serve
 ```
 
 `nudge serve` runs until Ctrl-C. It logs each refused request to stderr, with the login and the host it came with. In another shell, ask a question:
 
 ```sh
-go run . ask --option Yes --option No "Merge the pull request?"
+nudge ask --option Yes --option No "Merge the pull request?"
 ```
 
 Answer it on the page: tap an option, send a reply, or type a reply and then tap an option to send both. `nudge ask` prints the answer and exits 0.
 
+In the checkout, `mise run serve` and `go run . ask` do the same from the source.
+
 ## Run at login
 
-Once nudge is installed ([Install](#install)) and its settings are in `mise.local.toml`, run this in the checkout:
+Once nudge is installed ([Install](#install)) and the settings file holds its settings ([Settings](#settings)), start the service:
 
 ```sh
-mise run launchd
+brew services start codedogapp/tap/nudge
 ```
 
-It writes the launchd agent `~/Library/LaunchAgents/com.github.codedogapp.nudge.plist` and loads it. The agent starts the installed `nudge serve` at once and at each login, and starts it again whenever it stops. It gets `NUDGE_LOGIN` and `NUDGE_HOST`, and `NUDGE_LISTEN`, `NUDGE_SOCKET` and `NUDGE_SUBSCRIPTIONS` if they're set. The task writes nothing without the first two, or without the installed binary. `tailscale serve` must stay on ([Tailscale](#tailscale)).
+It writes the launchd agent `~/Library/LaunchAgents/sh.brew.nudge.plist` and loads it. launchd starts `nudge serve` at once and at each login, and starts it again whenever it stops. It starts it with none of the shell's variables, so `nudge serve` takes its settings from the settings file. `tailscale serve` must stay on ([Tailscale](#tailscale)).
 
-The agent's log is `~/Library/Logs/nudge/serve.log`, which gets the refused requests and the errors. When `nudge serve` can't start, launchd tries again every 10 seconds, and the log says why.
+The service's log is `$(brew --prefix)/var/log/nudge.log`, which gets the refused requests and the errors, and which nothing rotates. When `nudge serve` can't start, launchd tries again every 10 seconds, and the log says why.
 
-The agent keeps the binary and the settings it started with: run `mise run launchd` again after `mise upgrade` or a settings change. `mise run serve` can't run next to the agent, which holds the port and the socket. To see the agent, then to stop it and remove it:
+The service keeps the binary and the settings it started with: restart it after `brew upgrade` or a settings change. A `nudge serve` in a shell can't run next to the service, which holds the port and the socket. To restart the service, to see it, and to stop it and keep it from starting at login:
 
 ```sh
-launchctl print gui/$(id -u)/com.github.codedogapp.nudge
-launchctl bootout gui/$(id -u)/com.github.codedogapp.nudge
-rm ~/Library/LaunchAgents/com.github.codedogapp.nudge.plist
+brew services restart codedogapp/tap/nudge
+brew services info codedogapp/tap/nudge
+brew services stop codedogapp/tap/nudge
 ```
 
 ## The VAPID key
@@ -147,13 +159,11 @@ Each visit sends the device's subscription to `nudge serve` again ([the plan](pl
 
 ## Agents
 
-An agent asks through `nudge mcp`, an MCP server with one tool, `ask` ([the plan](plan.md), decision 17). The agent starts the server itself, from the binary that mise installed ([Install](#install)). Add it to Copilot CLI, with a timeout of a day:
+An agent asks through `nudge mcp`, an MCP server with one tool, `ask` ([the plan](plan.md), decision 17). The agent starts the server itself, from the binary that Homebrew installed ([Install](#install)). Add it to Copilot CLI, with a timeout of a day:
 
 ```sh
-copilot mcp add --timeout 86400000 nudge -- ~/.local/share/mise/installs/github-codedogapp-nudge/latest/nudge mcp
+copilot mcp add --timeout 86400000 nudge -- "$(brew --prefix codedogapp/tap/nudge)/bin/nudge" mcp
 ```
-
-Not through mise's shim, `~/.local/share/mise/shims/nudge`: Copilot CLI starts the server in the session's folder, and the shim refuses to run in a folder whose `mise.toml` mise doesn't trust ([the plan](plan.md), fact 9).
 
 Keep the name `nudge`: the agent sees the tool as `nudge-ask`, and the skill calls it that and approves it as `nudge(ask)` ([The skill](#the-skill)).
 
@@ -165,14 +175,14 @@ Copilot CLI can ask at the Mac for permission before the agent uses the tool, wh
 
 ## The skill
 
-The `nudge` skill, `skills/nudge/SKILL.md`, tells a Copilot CLI session to ask every question through nudge, never with `ask_user` or in the chat, and to run `nudge ask` when the MCP server isn't there ([the plan](plan.md), decision 23). A session loads it only when you ask for it: before you step away, start a prompt with `/nudge`, as in `/nudge Fix the failing test`. A prompt that asks the agent to ask you on your phone may load it too, but that's up to the model. It holds until you tell the agent you're back.
+The `nudge` skill, `skills/nudge/SKILL.md` in the repo, tells a Copilot CLI session to ask every question through nudge, never with `ask_user` or in the chat, and to run `nudge ask` when the MCP server isn't there ([the plan](plan.md), decision 23). A session loads it only when you ask for it: before you step away, start a prompt with `/nudge`, as in `/nudge Fix the failing test`. A prompt that asks the agent to ask you on your phone may load it too, but that's up to the model. It holds until you tell the agent you're back.
 
-Register the repo's `skills` folder with Copilot CLI, in the checkout:
+Homebrew installs the skill with nudge. Register its folder with Copilot CLI:
 
 ```sh
-copilot skill add "$PWD/skills"
+copilot skill add "$(brew --prefix codedogapp/tap/nudge)/share/nudge/skills"
 ```
 
-`copilot skill list` then shows `nudge`, and `/skills info nudge` in a session shows its details. A session that is already running finds it after `/skills reload`. Copilot CLI reads the skill from the folder each time, so a change to the checkout reaches the next session.
+`copilot skill list` then shows `nudge`, and `/skills info nudge` in a session shows its details. A session that is already running finds it after `/skills reload`. Copilot CLI reads the skill from the folder each time, through a path that an upgrade keeps, so a new version's skill reaches the next session ([the plan](plan.md), fact 13).
 
 Once a session loads the skill, the agent may use the `ask` tool and run `nudge` in the shell without asking you for permission first: the skill's `allowed-tools` approves `nudge(ask)` and `shell(nudge:*)` for the rest of the session.
