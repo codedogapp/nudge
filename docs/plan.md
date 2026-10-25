@@ -29,17 +29,17 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | `phone-door` | `nudge serve` opens the phone door behind the Tailscale lock, with a page that lists the pending questions; `docs/setup.md` for `tailscale serve` | Done (#8) |
 | `answer-form` | The answer forms on the page and `POST /questions/{id}/answer`, with `http.CrossOriginProtection` and the security headers | Done (#9) |
 | `page-style` | The page's CSS, in Bakhyard's look with system fonts (decision 9) | Done (#10) |
-| `pwa` | The manifest, the icons, `theme-color` and the safe areas, so the iPhone can add nudge to its Home Screen (decision 10) | Done (#11) |
+| `pwa` | The manifest, the icons, `theme-color` and the safe areas, so the iPhone can add nudge to its Home Screen (decision 10) | Done (#11) The iPhone check (AC7) passed on 2026-10-25. |
 | `vapid-key` | `nudge serve` makes its VAPID key on its first start and keeps it in the login Keychain; the page carries the public half (decision 11) | Done (#12) |
 | `subscriptions` | The subscriptions file, and `POST /subscriptions` to add a device (decision 13) | Done (#13) |
-| `push-button` | The service worker, a button that turns notifications on, and the web gates (decisions 12 and 14) | Done (#14) |
+| `push-button` | The service worker, a button that turns notifications on, and the web gates (decisions 12 and 14) | Done (#14) The iPhone check (AC7) passed on 2026-10-25. |
 | `push-show` | The service worker shows each push as a notification, and a tap opens the page (decision 15) | Done (#15) |
 | `push-send` | A Web Push for each new question; gone devices are forgotten; tried on the Mac, and on the iPhone when the user is back (decision 16, risk 2) | Done (#16) |
 | `mcp` | `nudge mcp`, an MCP server whose `ask` tool asks through the agent socket, and the agent's settings in `docs/setup.md` (decision 17, risk 9) | Done (#17) |
 | `release` | A `v*` tag builds `nudge` for Apple silicon and publishes it as a GitHub release with a build provenance attestation; mise installs it (decisions 18 and 20) | Done (#18), removed (#24) |
 | `launchd` | `mise run launchd` writes the launchd agent that runs `nudge serve` at login, and loads it (decisions 19 and 21) | Done (#19), removed (#24) |
 | `agent-rule` | The agent's rule to ask every question through nudge, in Copilot CLI's instructions (decision 22) | Done (#20) |
-| `skill` | The rule becomes the `nudge` skill, which a session loads only when the user asks for it (decision 23) | Done (#21) |
+| `skill` | The rule becomes the `nudge` skill, which a session loads only when the user asks for it (decision 23) | Done (#21) Its AC7 passed on 2026-10-25: after the user's `/nudge`, the main Bakhyard session asked many questions through the `nudge-ask` tool, and the user answered them on the phone. |
 | `settings-file` | `nudge serve` also reads its settings from a file, for a service that has no settings in its environment (decision 24) | Done (#22) |
 | `version` | `nudge mcp` reports the version that the build sets with `-X main.version`, for a build from a source tarball (decision 25) | Done (#23) |
 | `tap` | `codedogapp/homebrew-tap`: a formula that builds nudge from its tag's source, runs `nudge serve` with `brew services` and ships the skill, with CI (decisions 27 and 28) | Done (codedogapp/homebrew-tap#1) |
@@ -143,7 +143,7 @@ sequenceDiagram
 ## 5. Risks
 
 1. **The wake-up** (fact 3) was tried with `sleep`, then with `nudge ask` in `ask-cli`: the command moved to the background after a 30 s wait, the agent ended its turn, and when the command ended 73 s after it started (its `nudge serve` stopped), the message started a new turn by itself. Fallback, if a later Copilot CLI drops it: the skill makes the agent wait in a loop, which costs a model call per round.
-2. **Web Push on port 8443** works in Chrome on the Mac, through FCM (`push-send`), but hasn't been tried on the iPhone: the user tries it when back. Fallback: a Tailscale Service name (fact 6).
+2. **Web Push on port 8443** works in Chrome on the Mac, through FCM (`push-send`), and on the iPhone: passed on 2026-10-25, with one subscription at `web.push.apple.com`. The risk is closed; the fallback, a Tailscale Service name (fact 6), isn't needed.
 3. **A sleeping Mac** stops the agent and nudge, so the phone gets nothing new.
 4. **Push is best effort**: a notification can come late or not at all. The page always lists every pending question.
 5. **Local processes** can reach `127.0.0.1:8700` with a forged `Tailscale-User-Login` header and answer a question. They are trusted, as in Bakhyard. A web page in a browser on the Mac could try the same through DNS rebinding; the `Host` check refuses it (decision 8).
