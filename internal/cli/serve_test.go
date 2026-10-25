@@ -70,7 +70,7 @@ func TestServeStopsWithItsContext(t *testing.T) {
 
 	var stdout, stderr strings.Builder
 
-	if code := cli.Run(ctx, []string{"serve"}, &stdout, &stderr); code != 0 {
+	if code := (cli.Program{}).Run(ctx, []string{"serve"}, &stdout, &stderr); code != 0 {
 		t.Errorf("Run(serve) = %d, stderr = %q, want 0", code, stderr.String())
 	}
 
@@ -89,7 +89,7 @@ func TestServeReportsWhatFailed(t *testing.T) {
 
 	var stdout, stderr strings.Builder
 
-	code := cli.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
+	code := cli.Program{}.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
 	if want := "nudge serve: other users can open"; code != 1 ||
 		!strings.HasPrefix(stderr.String(), want) {
 		t.Errorf("Run(serve) = %d, stderr = %q, want 1 and %q", code, stderr.String(), want)
@@ -110,7 +110,7 @@ func TestServeNeedsItsSettings(t *testing.T) {
 
 			var stdout, stderr strings.Builder
 
-			code := cli.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
+			code := cli.Program{}.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
 
 			want := fmt.Sprintf("nudge serve: %s is not set, and %s has no %q\n",
 				test.name, settingsPath(t), test.key)
@@ -138,7 +138,7 @@ func TestServeNeedsAValidSettingsFile(t *testing.T) {
 
 	var stdout, stderr strings.Builder
 
-	code := cli.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
+	code := cli.Program{}.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
 	if want := "nudge serve: the settings file " + file + " is invalid: "; code != 1 ||
 		!strings.HasPrefix(stderr.String(), want) {
 		t.Errorf("Run(serve) = %d, stderr = %q, want 1 and %q", code, stderr.String(), want)
@@ -154,7 +154,7 @@ func TestServeNeedsItsKey(t *testing.T) {
 
 	var stdout, stderr strings.Builder
 
-	code := cli.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
+	code := cli.Program{}.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
 
 	want := "nudge serve: read the VAPID key from the Keychain " +
 		"(service nudge, account vapid-private-key): exit status 36: " +
@@ -179,7 +179,7 @@ func TestServeNeedsValidSubscriptions(t *testing.T) {
 
 	var stdout, stderr strings.Builder
 
-	code := cli.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
+	code := cli.Program{}.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
 	if want := "nudge serve: the subscriptions file " + file + " is invalid: "; code != 1 ||
 		!strings.HasPrefix(stderr.String(), want) {
 		t.Errorf("Run(serve) = %d, stderr = %q, want 1 and %q", code, stderr.String(), want)
@@ -211,7 +211,7 @@ func TestServeNeedsThePhoneDoorsAddress(t *testing.T) {
 
 			var stdout, stderr strings.Builder
 
-			code := cli.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
+			code := cli.Program{}.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
 			if want := "nudge serve: open the phone door: "; code != 1 ||
 				!strings.HasPrefix(stderr.String(), want) {
 				t.Errorf("Run(serve) = %d, stderr = %q, want 1 and %q", code, stderr.String(), want)

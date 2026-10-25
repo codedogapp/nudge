@@ -49,7 +49,7 @@ func TestRunPrintsTheUsage(t *testing.T) {
 
 			var stdout, stderr strings.Builder
 
-			if code := cli.Run(t.Context(), test.args, &stdout, &stderr); code != 2 {
+			if code := (cli.Program{}).Run(t.Context(), test.args, &stdout, &stderr); code != 2 {
 				t.Errorf("Run(%q) = %d, want 2", test.args, code)
 			}
 
@@ -81,7 +81,7 @@ func TestRunNeedsTheSocketsPath(t *testing.T) {
 
 			var stdout, stderr strings.Builder
 
-			code := cli.Run(t.Context(), test.args, &stdout, &stderr)
+			code := cli.Program{}.Run(t.Context(), test.args, &stdout, &stderr)
 			if code != 1 || !strings.HasPrefix(stderr.String(), test.want) {
 				t.Errorf("Run(%q) = %d, stderr = %q, want 1 and %q",
 					test.args, code, stderr.String(), test.want)

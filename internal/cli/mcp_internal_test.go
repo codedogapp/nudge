@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"net"
+	"runtime/debug"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -25,7 +26,7 @@ func TestServeMCPUntilTheAgentGoesAway(t *testing.T) {
 
 	go func() {
 		transport := &mcp.IOTransport{Reader: serverEnd, Writer: serverEnd}
-		exited <- serveMCP(t.Context(), nil, transport, &stderr)
+		exited <- Program{Version: "v9.9.9"}.serveMCP(t.Context(), nil, transport, &stderr)
 	}()
 
 	client := mcp.NewClient(&mcp.Implementation{Name: "test", Version: "v0"}, nil)
@@ -36,9 +37,9 @@ func TestServeMCPUntilTheAgentGoesAway(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	info := session.InitializeResult().ServerInfo
-	if info.Name != "nudge" || info.Version == "" || info.Version != version() {
-		t.Errorf("server = %s %q, want nudge %q", info.Name, info.Version, version())
+	if info := session.InitializeResult().ServerInfo; info.Name != "nudge" ||
+		info.Version != "v9.9.9" {
+		t.Errorf("server = %s %q, want nudge %q", info.Name, info.Version, "v9.9.9")
 	}
 
 	if err := agentEnd.Close(); err != nil {
@@ -50,6 +51,17 @@ func TestServeMCPUntilTheAgentGoesAway(t *testing.T) {
 	}
 }
 
+func TestVersionFromTheBuildInfo(t *testing.T) {
+	info, ok := debug.ReadBuildInfo()
+	if !ok || info.Main.Version == "" {
+		t.Fatal("the test binary has no version in its build info")
+	}
+
+	if got := (Program{}).version(); got != info.Main.Version {
+		t.Errorf("version() = %q, want the build info's %q", got, info.Main.Version)
+	}
+}
+
 func TestServeMCPStopped(t *testing.T) {
 	ctx, stop := context.WithCancel(t.Context())
 	stop()
@@ -57,7 +69,8 @@ func TestServeMCPStopped(t *testing.T) {
 	serverEnd, _ := mcp.NewInMemoryTransports()
 
 	var stderr bytes.Buffer
-	if code := serveMCP(ctx, nil, serverEnd, &stderr); code != exitOK || stderr.Len() != 0 {
+	if code := (Program{}).serveMCP(ctx, nil, serverEnd, &stderr); code != exitOK ||
+		stderr.Len() != 0 {
 		t.Errorf("serveMCP = %d, stderr %q; want 0 and nothing", code, stderr.String())
 	}
 }
@@ -65,7 +78,7 @@ func TestServeMCPStopped(t *testing.T) {
 func TestServeMCPFails(t *testing.T) {
 	var stderr bytes.Buffer
 
-	code := serveMCP(t.Context(), nil, brokenTransport{}, &stderr)
+	code := Program{}.serveMCP(t.Context(), nil, brokenTransport{}, &stderr)
 	if code != exitError || stderr.String() != "nudge mcp: stdin is closed\n" {
 		t.Errorf("serveMCP = %d, stderr %q; want 1 and the reason", code, stderr.String())
 	}
