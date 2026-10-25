@@ -10,7 +10,7 @@ import (
 )
 
 // The variables that nudge serve reads its settings from (docs/setup.md), and the phone door's
-// address when NUDGE_LISTEN is unset.
+// address when neither NUDGE_LISTEN nor the settings file gives one.
 const (
 	loginVar         = "NUDGE_LOGIN"
 	hostVar          = "NUDGE_HOST"
@@ -30,53 +30,42 @@ type settings struct {
 	subscriptions string // The file that keeps the push subscriptions.
 }
 
-// readSettings reads the settings from the environment. NUDGE_LOGIN and NUDGE_HOST must be set.
+// readSettings reads each setting from its variable, else from the settings file, else takes its
+// default. An empty value counts as unset. The login and the host have no default.
 func readSettings() (settings, error) {
-	login, err := required(loginVar)
-	if err != nil {
-		return settings{}, err
-	}
-
-	host, err := required(hostVar)
-	if err != nil {
-		return settings{}, err
-	}
-
-	subscriptions, err := subscriptionsPath()
-	if err != nil {
-		return settings{}, err
-	}
-
-	return settings{
-		login:         login,
-		host:          host,
-		listen:        cmp.Or(os.Getenv(listenVar), defaultListen),
-		security:      cmp.Or(os.Getenv(securityVar), vapid.Security),
-		subscriptions: subscriptions,
-	}, nil
-}
-
-// subscriptionsPath is NUDGE_SUBSCRIPTIONS when it's set, else nudge/subscriptions.json in the
-// user's config folder, next to the agent socket.
-func subscriptionsPath() (string, error) {
-	if path := os.Getenv(subscriptionsVar); path != "" {
-		return path, nil
-	}
-
 	config, err := os.UserConfigDir()
 	if err != nil {
-		return "", fmt.Errorf("find the config folder: %w", err)
+		return settings{}, fmt.Errorf("find the config folder: %w", err)
 	}
 
-	return filepath.Join(config, "nudge", "subscriptions.json"), nil
+	path := settingsFile(config)
+
+	file, err := readSettingsFile(path)
+	if err != nil {
+		return settings{}, err
+	}
+
+	given := settings{
+		login:    cmp.Or(os.Getenv(loginVar), file.Login),
+		host:     cmp.Or(os.Getenv(hostVar), file.Host),
+		listen:   cmp.Or(os.Getenv(listenVar), file.Listen, defaultListen),
+		security: cmp.Or(os.Getenv(securityVar), vapid.Security),
+		subscriptions: cmp.Or(os.Getenv(subscriptionsVar), file.Subscriptions,
+			filepath.Join(config, "nudge", "subscriptions.json")),
+	}
+
+	if given.login == "" {
+		return settings{}, missing(loginVar, path, "login")
+	}
+
+	if given.host == "" {
+		return settings{}, missing(hostVar, path, "host")
+	}
+
+	return given, nil
 }
 
-// required returns the value of the variable name, or an error if it is unset or empty.
-func required(name string) (string, error) {
-	value := os.Getenv(name)
-	if value == "" {
-		return "", fmt.Errorf("%s is not set", name)
-	}
-
-	return value, nil
+// missing is the error for a setting that neither its variable nor the settings file gives.
+func missing(name, path, key string) error {
+	return fmt.Errorf("%s is not set, and %s has no %q", name, path, key)
 }

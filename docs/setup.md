@@ -1,6 +1,6 @@
 # Setup
 
-How to install nudge on a Mac, what it needs before `nudge serve` can run (its settings, and `tailscale serve` to publish the phone door on the tailnet), and how to run it at login. [The plan](plan.md) says why (§3, decisions 7, 8 and 18 to 23). The last two sections add nudge to an agent, and give the agent the skill that sends its questions to the phone.
+How to install nudge on a Mac, what it needs before `nudge serve` can run (its settings, and `tailscale serve` to publish the phone door on the tailnet), and how to run it at login. [The plan](plan.md) says why (§3, decisions 7, 8 and 18 to 24). The last two sections add nudge to an agent, and give the agent the skill that sends its questions to the phone.
 
 ## Install
 
@@ -16,28 +16,43 @@ The binary is then `~/.local/share/mise/installs/github-codedogapp-nudge/latest/
 
 ## Settings
 
-`nudge serve` reads its settings from the environment. They live in `mise.local.toml`, at the repo's root: git ignores it, and mise puts its `[env]` into every task's environment, so `mise run serve` and `mise run launchd` both get them.
+`nudge serve` takes each setting from its variable in the environment, else from its key in the settings file, `~/Library/Application Support/nudge/settings.json`, else from its default. An empty value counts as unset. It reads them once, when it starts, so restart it after a change.
+
+| Variable | Key | Holds | When unset |
+| --- | --- | --- | --- |
+| `NUDGE_LOGIN` | `login` | The one Tailscale login let in | `nudge serve` exits 1 |
+| `NUDGE_HOST` | `host` | The Mac's ts.net name, which `tailscale serve` publishes, without the trailing dot | `nudge serve` exits 1 |
+| `NUDGE_LISTEN` | `listen` | The phone door's address. Keep it on loopback: anyone who reaches it can send the headers that the lock checks | `127.0.0.1:8700` |
+| `NUDGE_SECURITY` | | The `security` tool that keeps the VAPID key. Only the tests change it, to point at a stand-in | `/usr/bin/security` |
+| `NUDGE_SOCKET` | | The agent door's socket, for `nudge serve`, `nudge ask` and `nudge mcp`. It has no key, because `nudge ask` and `nudge mcp` read only the environment | `~/Library/Application Support/nudge/agent.sock` |
+| `NUDGE_SUBSCRIPTIONS` | `subscriptions` | The file that keeps the devices' push subscriptions. In the settings file, an absolute path | `~/Library/Application Support/nudge/subscriptions.json` |
+
+The settings file suits a service, which starts with no settings in its environment. It holds a JSON object:
+
+```json
+{
+  "login": "user@example.com",
+  "host": "machine.tailnet.ts.net"
+}
+```
+
+Tailscale knows the login and the name. This writes them to the file, in a folder that only the user can open, as `nudge serve` needs:
+
+```sh
+mkdir -p -m 700 ~/Library/Application\ Support/nudge
+tailscale status --json |
+  jq '{login: .User[(.Self.UserID | tostring)].LoginName, host: (.Self.DNSName | rtrimstr("."))}' \
+  > ~/Library/Application\ Support/nudge/settings.json
+```
+
+A missing file is fine. Invalid JSON, an unknown key, a key twice, a value that isn't a string, or a `subscriptions` path that isn't absolute stops `nudge serve` with a message that names the file.
+
+The variables suit a run from the checkout. They live in `mise.local.toml`, at the repo's root: git ignores it, and mise puts its `[env]` into every task's environment, so `mise run serve` and `mise run launchd` both get them.
 
 ```toml
 [env]
 NUDGE_LOGIN = "user@example.com"
 NUDGE_HOST = "machine.tailnet.ts.net"
-```
-
-| Variable | Holds | When unset |
-| --- | --- | --- |
-| `NUDGE_LOGIN` | The one Tailscale login let in | `nudge serve` exits 1 |
-| `NUDGE_HOST` | The Mac's ts.net name, which `tailscale serve` publishes, without the trailing dot | `nudge serve` exits 1 |
-| `NUDGE_LISTEN` | The phone door's address. Keep it on loopback: anyone who reaches it can send the headers that the lock checks | `127.0.0.1:8700` |
-| `NUDGE_SECURITY` | The `security` tool that keeps the VAPID key. Only the tests change it, to point at a stand-in | `/usr/bin/security` |
-| `NUDGE_SOCKET` | The agent door's socket, for `nudge serve`, `nudge ask` and `nudge mcp` | `~/Library/Application Support/nudge/agent.sock` |
-| `NUDGE_SUBSCRIPTIONS` | The file that keeps the devices' push subscriptions | `~/Library/Application Support/nudge/subscriptions.json` |
-
-Tailscale knows the login and the name:
-
-```sh
-tailscale status --json | jq -r '.User[(.Self.UserID | tostring)].LoginName'
-tailscale status --json | jq -r '.Self.DNSName | rtrimstr(".")'
 ```
 
 ## Tailscale
@@ -106,7 +121,7 @@ When `security` fails, for example on a locked Keychain that can't ask for its p
 
 ## The subscriptions
 
-Each device that turns its notifications on adds its push subscription to `~/Library/Application Support/nudge/subscriptions.json`, or to the file that `NUDGE_SUBSCRIPTIONS` names: a JSON list that only the user can read. To see it:
+Each device that turns its notifications on adds its push subscription to `~/Library/Application Support/nudge/subscriptions.json`, or to the file that the `subscriptions` setting names: a JSON list that only the user can read. To see it:
 
 ```sh
 cat ~/Library/Application\ Support/nudge/subscriptions.json

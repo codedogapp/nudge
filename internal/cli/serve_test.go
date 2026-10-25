@@ -3,6 +3,7 @@ package cli_test
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io/fs"
 	"net"
 	"os"
@@ -14,15 +15,30 @@ import (
 )
 
 // configure sets nudge serve's settings, with the phone door on a free loopback port and the
-// subscriptions in a file of the test's own, and gives it a Keychain that holds a VAPID key.
+// subscriptions in a file of the test's own, gives it a home of its own, with no settings file,
+// and a Keychain that holds a VAPID key.
 func configure(t *testing.T) {
 	t.Helper()
 
+	t.Setenv("HOME", t.TempDir())
+	t.Setenv("XDG_CONFIG_HOME", "")
 	t.Setenv("NUDGE_LOGIN", "user@example.com")
 	t.Setenv("NUDGE_HOST", "machine.tailnet.ts.net")
 	t.Setenv("NUDGE_LISTEN", "127.0.0.1:0")
 	t.Setenv("NUDGE_SUBSCRIPTIONS", filepath.Join(t.TempDir(), "subscriptions.json"))
 	standIn(t, "keychain")
+}
+
+// settingsPath is the path of nudge serve's settings file in the test's home.
+func settingsPath(t *testing.T) string {
+	t.Helper()
+
+	config, err := os.UserConfigDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return filepath.Join(config, "nudge", "settings.json")
 }
 
 // standIn points NUDGE_SECURITY at the stand-in security tool in testdata/dir.
@@ -81,23 +97,54 @@ func TestServeReportsWhatFailed(t *testing.T) {
 }
 
 func TestServeNeedsItsSettings(t *testing.T) {
-	for _, name := range []string{"NUDGE_LOGIN", "NUDGE_HOST"} {
-		t.Run(name, func(t *testing.T) {
+	tests := []struct{ name, key string }{
+		{"NUDGE_LOGIN", "login"},
+		{"NUDGE_HOST", "host"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
 			path := socketIn(t)
 			configure(t)
-			t.Setenv(name, "")
+			t.Setenv(test.name, "")
 
 			var stdout, stderr strings.Builder
 
 			code := cli.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
-			if want := "nudge serve: " + name + " is not set\n"; code != 1 ||
-				stderr.String() != want {
+
+			want := fmt.Sprintf("nudge serve: %s is not set, and %s has no %q\n",
+				test.name, settingsPath(t), test.key)
+			if code != 1 || stderr.String() != want {
 				t.Errorf("Run(serve) = %d, stderr = %q, want 1 and %q", code, stderr.String(), want)
 			}
 
 			assertGone(t, path)
 		})
 	}
+}
+
+func TestServeNeedsAValidSettingsFile(t *testing.T) {
+	path := socketIn(t)
+	configure(t)
+
+	file := settingsPath(t)
+	if err := os.MkdirAll(filepath.Dir(file), 0o700); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.WriteFile(file, []byte(`{"port": 8700}`), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var stdout, stderr strings.Builder
+
+	code := cli.Run(t.Context(), []string{"serve"}, &stdout, &stderr)
+	if want := "nudge serve: the settings file " + file + " is invalid: "; code != 1 ||
+		!strings.HasPrefix(stderr.String(), want) {
+		t.Errorf("Run(serve) = %d, stderr = %q, want 1 and %q", code, stderr.String(), want)
+	}
+
+	assertGone(t, path)
 }
 
 func TestServeNeedsItsKey(t *testing.T) {
