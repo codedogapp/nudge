@@ -65,9 +65,9 @@ Never report a step as done before `mise run check` has passed, and say which ga
 
 ## Architecture
 
-- **One binary, `nudge`**, with a subcommand per job: `nudge serve` runs the server, `nudge ask` asks a question and prints the answer. Plan §3 has the design.
+- **One binary, `nudge`**, with a subcommand per job: `nudge serve` runs the server, `nudge ask` asks a question and prints the answer, `nudge mcp` serves the agent's MCP tools, `nudge setup` prepares a Mac. Plan §3 has the design.
 - **One Go module** at the root: `github.com/codedogapp/nudge`. The `main` package stays thin wiring; everything else lives in `internal/` packages.
-- **Two doors, two locks.** Agents reach the server only through a Unix socket that only the user can open; the phone reaches it only through `tailscale serve`, and only with the user's Tailscale login. Neither side uses the other's door.
+- **Two doors, two locks.** Agents on the server's machine reach it through a Unix socket that only the user can open; the phone and agents on other machines reach it only through the tailnet (`tailscale serve` or the Tailscale Kubernetes operator), and only with the user's Tailscale login. Local agents don't use the tailnet door, and the phone doesn't use the socket. The user accepted the remote agents' use of the tailnet door on 2026-10-26 (plan decision 35).
 - **Nothing on disk that the server can keep in memory.** A question lives as long as the request that asks it.
 
 ## Toolchain
