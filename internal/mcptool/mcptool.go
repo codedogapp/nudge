@@ -1,5 +1,5 @@
-// Package mcptool is nudge's MCP server: it offers agents one tool, ask, which asks the user a
-// question and returns the answer.
+// Package mcptool is nudge's MCP server: it offers agents two tools, ask, which asks the user a
+// question and returns the answer, and report, which tells the user how the work goes.
 package mcptool
 
 import (
@@ -12,6 +12,15 @@ import (
 
 // Ask asks question, and waits for its answer until ctx ends.
 type Ask func(ctx context.Context, question agentdoor.Question) (agentdoor.Answer, error)
+
+// Report sets the note that shows the user how the agent's work goes.
+type Report func(ctx context.Context, note string) error
+
+// Door is what the tools use to reach the user.
+type Door struct {
+	Ask    Ask
+	Report Report
+}
 
 // description tells the model what the ask tool is for.
 const description = "Ask the user a question on their phone, and wait for the answer. " +
@@ -27,10 +36,13 @@ type input struct {
 }
 
 // Run serves nudge's MCP server at version on transport, until the agent goes away or ctx ends.
-// Its ask tool asks through ask.
-func Run(ctx context.Context, version string, ask Ask, transport mcp.Transport) error {
+// Its tools reach the user through door.
+func Run(ctx context.Context, version string, door Door, transport mcp.Transport) error {
 	server := mcp.NewServer(&mcp.Implementation{Name: "nudge", Version: version}, nil)
-	mcp.AddTool(server, &mcp.Tool{Name: "ask", Description: description}, ask.until(ctx).handle)
+	mcp.AddTool(server, &mcp.Tool{Name: "ask", Description: description},
+		door.Ask.until(ctx).handle)
+	mcp.AddTool(server, &mcp.Tool{Name: "report", Description: reportDescription},
+		door.Report.handle)
 
 	return server.Run(ctx, transport)
 }

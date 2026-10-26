@@ -18,7 +18,7 @@ import (
 func serve(ctx context.Context, ask mcptool.Ask, transport mcp.Transport) <-chan error {
 	ran := make(chan error, 1)
 
-	go func() { ran <- mcptool.Run(ctx, "v1.2.3", ask, transport) }()
+	go func() { ran <- mcptool.Run(ctx, "v1.2.3", mcptool.Door{Ask: ask}, transport) }()
 
 	return ran
 }

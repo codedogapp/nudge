@@ -13,6 +13,9 @@ import (
 	"strings"
 )
 
+// ErrSessionGone means the server has no such session: it has restarted since the session began.
+var ErrSessionGone = errors.New("the session is gone")
+
 const sessionsURL = "http://nudge/sessions"
 
 // Session is a session that an agent has started on the agent door. It lasts until the context
@@ -83,11 +86,14 @@ func (s Session) Report(ctx context.Context, note string) error {
 
 	defer func() { _ = response.Body.Close() }()
 
-	if response.StatusCode != http.StatusNoContent {
+	switch response.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	case http.StatusNotFound:
+		return ErrSessionGone
+	default:
 		return refusal(response)
 	}
-
-	return nil
 }
 
 // refusal turns a reply that isn't a success into an error with the server's reason.

@@ -159,7 +159,7 @@ Each visit sends the device's subscription to `nudge serve` again ([the plan](pl
 
 ## Agents
 
-An agent asks through `nudge mcp`, an MCP server with one tool, `ask` ([the plan](plan.md), decision 17). The agent starts the server itself, from the binary that Homebrew installed ([Install](#install)). Add it to Copilot CLI, with a timeout of a day:
+An agent asks through `nudge mcp`, an MCP server with two tools, `ask`, which waits for your answer ([the plan](plan.md), decision 17), and `report`, which sets a note on the session that the page shows ([the plan](plan.md), decision 31). The agent starts the server itself, from the binary that Homebrew installed ([Install](#install)). Add it to Copilot CLI, with a timeout of a day:
 
 ```sh
 copilot mcp add --timeout 86400000 nudge -- "$(brew --prefix codedogapp/tap/nudge)/bin/nudge" mcp
