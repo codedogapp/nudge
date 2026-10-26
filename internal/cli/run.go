@@ -7,12 +7,14 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/codedogapp/nudge/internal/setup"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 const usage = `usage: nudge serve
        nudge ask [--option TEXT]... [--details TEXT] QUESTION
-       nudge mcp`
+       nudge mcp
+       nudge setup`
 
 // The exit codes: done, an error, and a usage error.
 const (
@@ -39,6 +41,12 @@ func (p Program) Run(ctx context.Context, args []string, stdout, stderr io.Write
 		return ask(ctx, args[1:], stdout, stderr)
 	case "mcp":
 		return p.serveMCP(ctx, args[1:], &mcp.StdioTransport{}, stderr)
+	case "setup":
+		if len(args) != 1 {
+			return misused(stderr)
+		}
+
+		return runSetup(ctx, setup.Exec, stdout, stderr)
 	default:
 		return misused(stderr)
 	}

@@ -22,6 +22,16 @@ brew upgrade codedogapp/tap/nudge
 
 Then restart the service, which still runs the old one ([Run at login](#run-at-login)).
 
+## Quick setup
+
+On a new Mac, install nudge ([Install](#install)) and run:
+
+```sh
+nudge setup
+```
+
+It does the steps of [Settings](#settings), [Tailscale](#tailscale) and [Agents](#agents) in one go, and prints a line for each ([the plan](plan.md), decision 33): it writes the settings file from `tailscale status --json`, unless the file exists; it publishes the phone door with `tailscale serve`; and it adds the MCP server and the skill to Copilot CLI, leaving an MCP server that is already there. It is safe to run again. It doesn't start or restart the service: do that with [Run at login](#run-at-login), then do [The Home Screen](#the-home-screen) and [Notifications](#notifications) on the phone. The sections named above say what each step does, and how to do it by hand.
+
 ## Settings
 
 `nudge serve` takes each setting from its variable in the environment, else from its key in the settings file, `~/Library/Application Support/nudge/settings.json`, else from its default. An empty value counts as unset. It reads them once, when it starts, so restart it after a change.
