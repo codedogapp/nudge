@@ -91,7 +91,7 @@ func listenAndServe(ctx context.Context, logger *slog.Logger) error {
 
 	return serveDoors(ctx,
 		door{"agent", agents, agentdoor.Routes(&box, &live)},
-		door{"phone", phones, lock(phonedoor.Routes(&box, key.Public, devices))},
+		door{"phone", phones, lock(phonedoor.Routes(&box, &live, key.Public, devices))},
 	)
 }
 

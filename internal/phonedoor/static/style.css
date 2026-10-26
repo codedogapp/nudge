@@ -87,7 +87,13 @@ article {
   box-shadow: var(--offset) var(--offset) 0 var(--shadow);
 }
 
+section {
+  display: grid;
+  gap: 24px;
+}
+
 main > p,
+section > p,
 article > * {
   margin: 0;
 }

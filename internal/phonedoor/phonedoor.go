@@ -7,8 +7,10 @@ import (
 	_ "embed"
 	"html/template"
 	"net/http"
+	"time"
 
 	"github.com/codedogapp/nudge/internal/inbox"
+	"github.com/codedogapp/nudge/internal/sessions"
 	"github.com/codedogapp/nudge/internal/subscriptions"
 )
 
@@ -18,27 +20,35 @@ var page string
 // site serves the pages from the inbox, and keeps the devices that subscribe to its pushes.
 type site struct {
 	box     *inbox.Inbox
+	live    *sessions.Registry
 	pushKey string
 	devices *subscriptions.Store
 	page    *template.Template
 }
 
-// view is what the page shows: why the last answer was refused, if it was, and the questions that
-// wait. It also carries the push key.
+// view is what the page shows: why the last answer was refused, if it was, the questions that
+// wait and the sessions that run. It also carries the push key.
 type view struct {
 	PushKey   string
 	Refusal   string
 	Questions []inbox.Question
+	Sessions  []sessionView
 }
 
 // Routes returns the phone door's handler. GET / lists the questions that wait, newest first, and
-// POST /questions/{id}/answer answers one; GET of a file in static gives the page its look, its
+// the sessions in live, each with its last note, and POST /questions/{id}/answer answers one; GET of a file in static gives the page its look, its
 // icons and its manifest. The page carries pushKey, the server's VAPID public key, for a browser
 // to subscribe to its pushes, and POST /subscriptions adds the subscription to devices. It
 // refuses cross-origin posts, and adds the security headers to every response.
-func Routes(box *inbox.Inbox, pushKey string, devices *subscriptions.Store) http.Handler {
+func Routes(
+	box *inbox.Inbox,
+	live *sessions.Registry,
+	pushKey string,
+	devices *subscriptions.Store,
+) http.Handler {
 	pages := site{
 		box:     box,
+		live:    live,
 		pushKey: pushKey,
 		devices: devices,
 		page:    template.Must(template.New("page").Parse(page)),
@@ -67,5 +77,6 @@ func (s site) show(w http.ResponseWriter, status int, refusal string) {
 		PushKey:   s.pushKey,
 		Refusal:   refusal,
 		Questions: s.box.Pending(),
+		Sessions:  viewSessions(s.live.List(), time.Now()),
 	})
 }
