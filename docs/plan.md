@@ -56,7 +56,7 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | `setup-command` | `nudge setup` runs the three steps and prints what it did; `docs/setup.md` leads with it (decision 33) | Done (#37) |
 | `agent-api` | The phone door also serves the agent door's endpoints under `/agent/`, behind the same lock (decisions 34 and 35) | Done (#41) |
 | `remote-client` | `nudge ask` and `nudge mcp` use `NUDGE_SERVER`, an https URL, in place of the socket when it is set (decision 35) | Done (#42) |
-| `machine-label` | A question and a session carry the machine's name, and the page shows it (decision 34) | Todo |
+| `machine-label` | A question and a session carry the machine's name, and the page shows it (decision 34); done by naming the project "project (machine)" on the client, which the page and the push title show as they are | Done (#43) |
 | `vapid-file` | `nudge serve` can take its VAPID key from a file or the environment, for a host with no Keychain (decision 35) | Todo |
 | `container` | A container image and Kubernetes manifests for `nudge serve`, with the Tailscale operator's ingress (decision 35); the details are open, §6 question 8 | Todo |
 | `multi-device` | The steps above, together: the user's end check that a question from a second machine reaches the iPhone (decisions 32, 34 and 35) | Todo |

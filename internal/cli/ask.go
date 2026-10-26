@@ -75,14 +75,26 @@ func send(ctx context.Context, question agentdoor.Question) (agentdoor.Answer, e
 	return agentdoor.Ask(ctx, client, question)
 }
 
-// currentProject is the name of the project in the current folder.
+// currentProject is what the page calls the project in the current folder: its name and the
+// machine's, as in "atlas (work-laptop)", for one page that several machines send to (docs/plan.md,
+// decision 34). Where the machine has no name, it is the project's name alone.
 func currentProject() (string, error) {
 	folder, err := os.Getwd()
 	if err != nil {
 		return "", fmt.Errorf("find the current folder: %w", err)
 	}
 
-	return filepath.Base(folder), nil
+	name := filepath.Base(folder)
+
+	// Hostname fails only where the machine has no name, which leaves the project's name alone.
+	host, _ := os.Hostname()
+	if host == "" {
+		return name, nil
+	}
+
+	short, _, _ := strings.Cut(host, ".")
+
+	return name + " (" + short + ")", nil
 }
 
 // answerLines is the answer as nudge ask prints it: an option line and a text line, each only
