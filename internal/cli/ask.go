@@ -60,12 +60,12 @@ func parseQuestion(args []string, stderr io.Writer) (agentdoor.Question, bool) {
 
 // send asks question, from the project in the current folder, through the agent door.
 func send(ctx context.Context, question agentdoor.Question) (agentdoor.Answer, error) {
-	folder, err := os.Getwd()
+	project, err := currentProject()
 	if err != nil {
-		return agentdoor.Answer{}, fmt.Errorf("find the current folder: %w", err)
+		return agentdoor.Answer{}, err
 	}
 
-	question.Project = filepath.Base(folder)
+	question.Project = project
 
 	path, err := agentdoor.SocketPath()
 	if err != nil {
@@ -73,6 +73,16 @@ func send(ctx context.Context, question agentdoor.Question) (agentdoor.Answer, e
 	}
 
 	return agentdoor.Ask(ctx, agentdoor.NewClient(path), question)
+}
+
+// currentProject is the name of the project in the current folder.
+func currentProject() (string, error) {
+	folder, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("find the current folder: %w", err)
+	}
+
+	return filepath.Base(folder), nil
 }
 
 // answerLines is the answer as nudge ask prints it: an option line and a text line, each only

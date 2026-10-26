@@ -40,8 +40,8 @@ func schemaOf(t *testing.T, raw any) schema {
 	return got
 }
 
-// askTool lists the server's tools, and returns the one tool, ask.
-func askTool(t *testing.T) *mcp.Tool {
+// tool lists the server's tools, which are ask and report, and returns the one named name.
+func tool(t *testing.T, name string) *mcp.Tool {
 	t.Helper()
 
 	listed, err := connect(t, nil).ListTools(t.Context(), nil)
@@ -49,12 +49,22 @@ func askTool(t *testing.T) *mcp.Tool {
 		t.Fatal(err)
 	}
 
-	if len(listed.Tools) != 1 || listed.Tools[0].Name != "ask" {
-		t.Fatalf("tools = %+v, want ask alone", listed.Tools)
+	if len(listed.Tools) != 2 {
+		t.Fatalf("tools = %+v, want ask and report", listed.Tools)
 	}
 
-	return listed.Tools[0]
+	for _, listedTool := range listed.Tools {
+		if listedTool.Name == name {
+			return listedTool
+		}
+	}
+
+	t.Fatalf("tools = %+v, want one named %s", listed.Tools, name)
+
+	return nil
 }
+
+func askTool(t *testing.T) *mcp.Tool { return tool(t, "ask") }
 
 func TestListsTheAskTool(t *testing.T) {
 	if tool := askTool(t); !strings.Contains(tool.Description, "phone") {

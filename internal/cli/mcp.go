@@ -12,7 +12,7 @@ import (
 )
 
 // serveMCP runs nudge mcp: nudge's MCP server, on transport, until the agent goes away or ctx
-// ends. Its questions come from the project in the current folder, as nudge ask's do.
+// ends. Its questions and reports come from the project in the current folder, as nudge ask's do.
 func (p Program) serveMCP(
 	ctx context.Context,
 	args []string,
@@ -23,7 +23,7 @@ func (p Program) serveMCP(
 		return misused(stderr)
 	}
 
-	err := mcptool.Run(ctx, p.version(), send, transport)
+	err := mcptool.Run(ctx, p.version(), mcptool.Door{Ask: send, Report: reporting(ctx)}, transport)
 	if err != nil && ctx.Err() == nil {
 		return failed(stderr, "mcp", err)
 	}
