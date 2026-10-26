@@ -13,3 +13,18 @@ type Answer struct {
 	Option string `json:"option"`
 	Text   string `json:"text"`
 }
+
+// Start is a request to start a session, as it crosses the agent door.
+type Start struct {
+	Project string `json:"project"`
+}
+
+// Started is the reply to a start: the new session's ID.
+type Started struct {
+	ID string `json:"id"`
+}
+
+// Report is an agent's note for its session, as it crosses the agent door.
+type Report struct {
+	Note string `json:"note"`
+}

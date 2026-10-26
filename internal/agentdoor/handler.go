@@ -8,17 +8,25 @@ import (
 	"net/http"
 
 	"github.com/codedogapp/nudge/internal/inbox"
+	"github.com/codedogapp/nudge/internal/sessions"
 )
 
 // maxQuestion caps a question's body: a few lines of text, and details of a few pages.
 const maxQuestion = 64 << 10
 
-// Routes returns the agent door's handler. Serve it with server.Serve: when its context ends, the
-// questions that wait end too, with 503.
-func Routes(box *inbox.Inbox) http.Handler {
+// Routes returns the agent door's handler, for the questions in box and the sessions in live. Serve
+// it with server.Serve: when its context ends, the questions that wait end too, with 503, and so
+// do the sessions.
+func Routes(box *inbox.Inbox, live *sessions.Registry) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /questions", func(w http.ResponseWriter, r *http.Request) {
 		ask(w, r, box)
+	})
+	mux.HandleFunc("POST /sessions", func(w http.ResponseWriter, r *http.Request) {
+		startSession(w, r, live)
+	})
+	mux.HandleFunc("PUT /sessions/{id}/note", func(w http.ResponseWriter, r *http.Request) {
+		report(w, r, live)
 	})
 
 	return mux

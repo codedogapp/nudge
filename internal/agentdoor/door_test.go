@@ -14,6 +14,7 @@ import (
 	"github.com/codedogapp/nudge/internal/agentdoor"
 	"github.com/codedogapp/nudge/internal/inbox"
 	"github.com/codedogapp/nudge/internal/server"
+	"github.com/codedogapp/nudge/internal/sessions"
 )
 
 // pipes is a net.Listener whose connections are in-memory pipes. A server on it can run in a
@@ -69,6 +70,7 @@ func (p *pipes) dial(ctx context.Context, _, _ string) (net.Conn, error) {
 // door is the agent door, served on pipes in the test's bubble.
 type door struct {
 	box    inbox.Inbox
+	live   sessions.Registry
 	client *http.Client
 }
 
@@ -88,7 +90,7 @@ func serve(ctx context.Context, t *testing.T) *door {
 	agent := &door{client: &http.Client{Transport: &http.Transport{DialContext: listener.dial}}}
 	served := make(chan error, 1)
 
-	go func() { served <- server.Serve(ctx, listener, agentdoor.Routes(&agent.box)) }()
+	go func() { served <- server.Serve(ctx, listener, agentdoor.Routes(&agent.box, &agent.live)) }()
 
 	t.Cleanup(func() {
 		if err := <-served; err != nil {
