@@ -49,7 +49,7 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | `sessions` | The agent door starts a session over a held connection, `POST /sessions`, and takes its note, `PUT /sessions/{id}/note`; the server keeps the sessions and their last note in memory, and the agent door's client can register and report (decision 31) | Done (#29) |
 | `report-tool` | `nudge mcp` registers a session when it starts, and its `report` tool sets the session's note (decision 31) | Done (#30) |
 | `sessions-page` | The page lists the sessions under the questions (decision 31) | Done (#31) |
-| `status-skill` | The skill tells the agent to report at milestones; `docs/setup.md` | Todo |
+| `status-skill` | The skill tells the agent to report at milestones; `docs/setup.md` | Done (#32) |
 | `setup-command` | `nudge setup` (decision 32); split into steps once the status report is done | Todo |
 | `multi-device` | One page for several machines, labelled (decision 32); needs §6 question 6 first | Todo |
 | `swift-spike` | A spike on a native iOS app (decision 32), findings in a docs PR | Todo |

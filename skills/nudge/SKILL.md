@@ -1,7 +1,7 @@
 ---
 name: nudge
 description: Ask the user every question through nudge, which reaches them on their phone, instead of ask_user or the chat. Use it only when the user asks for it, for example with /nudge, by asking to be asked on their phone or through nudge, or by saying that they're stepping away from the computer.
-allowed-tools: nudge(ask), shell(nudge:*)
+allowed-tools: nudge(ask), nudge(report), shell(nudge:*)
 ---
 
 # Ask through nudge
@@ -14,6 +14,10 @@ Ask with the `nudge-ask` tool, the `ask` tool of the `nudge` MCP server. When th
 - Offer the likely answers as `options`. The user can pick one, type a reply, or both.
 - The call waits until the user answers, which can take minutes or hours. Wait for the answer; don't go on with a guess.
 - When nudge fails, for example because `nudge serve` isn't running, say so, and ask the way you would without this skill.
+
+## Report your progress
+
+The user checks the nudge page from time to time to see what each session is doing. With the `nudge-report` tool, the `report` tool of the `nudge` MCP server, set a short note on your session: when you start, and whenever you finish a milestone or change course. The note replaces the last one, so say what you're doing now and what comes next, in a sentence. When the tool isn't there or fails, go on without it.
 
 ## Without the MCP server
 

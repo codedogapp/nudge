@@ -165,7 +165,7 @@ An agent asks through `nudge mcp`, an MCP server with two tools, `ask`, which wa
 copilot mcp add --timeout 86400000 nudge -- "$(brew --prefix codedogapp/tap/nudge)/bin/nudge" mcp
 ```
 
-Keep the name `nudge`: the agent sees the tool as `nudge-ask`, and the skill calls it that and approves it as `nudge(ask)` ([The skill](#the-skill)).
+Keep the name `nudge`: the agent sees the tool as `nudge-ask`, and the skill calls it that and approves it as `nudge(ask)`; the same goes for `nudge-report` and `nudge(report)` ([The skill](#the-skill)).
 
 Copilot CLI ends a tool call that runs longer than the timeout, and the question goes away with it. Without `--timeout`, Copilot CLI 1.0.102 ended a question after three minutes (risk 9). `copilot mcp add` keeps the server in `~/.copilot/mcp-config.json`, and `copilot mcp get nudge` shows it.
 
@@ -175,7 +175,7 @@ Copilot CLI can ask at the Mac for permission before the agent uses the tool, wh
 
 ## The skill
 
-The `nudge` skill, `skills/nudge/SKILL.md` in the repo, tells a Copilot CLI session to ask every question through nudge, never with `ask_user` or in the chat, and to run `nudge ask` when the MCP server isn't there ([the plan](plan.md), decision 23). A session loads it only when you ask for it: before you step away, start a prompt with `/nudge`, as in `/nudge Fix the failing test`. A prompt that asks the agent to ask you on your phone may load it too, but that's up to the model. It holds until you tell the agent you're back.
+The `nudge` skill, `skills/nudge/SKILL.md` in the repo, tells a Copilot CLI session to ask every question through nudge, never with `ask_user` or in the chat, to report its progress with `nudge-report`, and to run `nudge ask` when the MCP server isn't there ([the plan](plan.md), decision 23). A session loads it only when you ask for it: before you step away, start a prompt with `/nudge`, as in `/nudge Fix the failing test`. A prompt that asks the agent to ask you on your phone may load it too, but that's up to the model. It holds until you tell the agent you're back.
 
 Homebrew installs the skill with nudge. Register its folder with Copilot CLI:
 
@@ -185,4 +185,4 @@ copilot skill add "$(brew --prefix codedogapp/tap/nudge)/share/nudge/skills"
 
 `copilot skill list` then shows `nudge`, and `/skills info nudge` in a session shows its details. A session that is already running finds it after `/skills reload`. Copilot CLI reads the skill from the folder each time, through a path that an upgrade keeps, so a new version's skill reaches the next session ([the plan](plan.md), fact 13).
 
-Once a session loads the skill, the agent may use the `ask` tool and run `nudge` in the shell without asking you for permission first: the skill's `allowed-tools` approves `nudge(ask)` and `shell(nudge:*)` for the rest of the session.
+Once a session loads the skill, the agent may use the `ask` tool and run `nudge` in the shell without asking you for permission first: the skill's `allowed-tools` approves `nudge(ask)`, `nudge(report)` and `shell(nudge:*)` for the rest of the session.
