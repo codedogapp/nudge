@@ -58,7 +58,7 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | `remote-client` | `nudge ask` and `nudge mcp` use `NUDGE_SERVER`, an https URL, in place of the socket when it is set (decision 35) | Done (#42) |
 | `machine-label` | A question and a session carry the machine's name, and the page shows it (decision 34); done by naming the project "project (machine)" on the client, which the page and the push title show as they are | Done (#43) |
 | `vapid-file` | `nudge serve` can take its VAPID key from a file or the environment, for a host with no Keychain (decision 35); it is `NUDGE_VAPID_KEY_FILE`, with no key in the settings file | Done (#44) |
-| `container` | A container image and Kubernetes manifests for `nudge serve`, with the Tailscale operator's ingress (decision 35); the details are open, §6 question 8 | Todo |
+| `container` | A container image and Kubernetes manifests for `nudge serve`, with the Tailscale operator's ingress (decision 35); the details are open, §6 question 8 | Blocked: §6 question 8 |
 | `multi-device` | The steps above, together: the user's end check that a question from a second machine reaches the iPhone (decisions 32, 34 and 35) | Todo |
 | `swift-spike` | A spike on a native iOS app (decision 32), findings in a docs PR | Done (#39): [swift-spike.md](swift-spike.md), desk research only |
 
@@ -185,7 +185,7 @@ sequenceDiagram
 5. Whether Renovate watches the tap: decided, it keeps the actions current, with its `homebrew` manager off (decision 29).
 6. Multi-device: the work laptop is on the same tailnet (the user, 2026-10-25). What may run on it (Homebrew, Tailscale, a service) is still open, and so is the next question.
 7. Multi-device, the tailnet door for agents: accepted by the user on 2026-10-26 (decision 35).
-8. Container: where the image lives (a registry, or loaded into the cluster), which Kubernetes distribution runs it, whether the Tailscale operator is installed, and how the Secret is made. To ask the user when `container` starts.
+8. Container: the cluster runs k3s; the Tailscale Kubernetes operator is still a work in progress there; where the image lives and the manifest format (plain YAML, Helm or Kustomize) are undecided (the user, 2026-10-26). `container` waits until they are.
 
 ## 7. Sources
 
