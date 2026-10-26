@@ -84,17 +84,20 @@ func currentProject() (string, error) {
 		return "", fmt.Errorf("find the current folder: %w", err)
 	}
 
-	name := filepath.Base(folder)
-
-	// Hostname fails only where the machine has no name, which leaves the project's name alone.
+	// Hostname fails only where the machine has no name.
 	host, _ := os.Hostname()
-	if host == "" {
-		return name, nil
+
+	return labelled(filepath.Base(folder), host), nil
+}
+
+// labelled adds the machine's name, up to its first dot, to the project's name.
+func labelled(project, host string) string {
+	short, _, _ := strings.Cut(host, ".")
+	if short == "" {
+		return project
 	}
 
-	short, _, _ := strings.Cut(host, ".")
-
-	return name + " (" + short + ")", nil
+	return project + " (" + short + ")"
 }
 
 // answerLines is the answer as nudge ask prints it: an option line and a text line, each only
