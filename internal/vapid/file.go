@@ -6,15 +6,11 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
-	"path/filepath"
 	"strings"
 )
 
-// Folder and file modes: only the user can open them.
-const (
-	folderMode = 0o700
-	fileMode   = 0o600
-)
+// fileMode lets only the user read the key.
+const fileMode = 0o600
 
 // File keeps the key in a file, for a host with no Keychain, such as a container. The file holds
 // the private key, base64url-encoded without padding.
@@ -47,25 +43,14 @@ func (f File) Load(context.Context) (Key, error) {
 	return key, nil
 }
 
-// create makes a key and writes it to a new file.
+// create makes a key and writes it to the file, which isn't there, in a folder that is.
 func (f File) create() (Key, error) {
 	made, err := generate()
 	if err != nil {
 		return Key{}, err
 	}
 
-	if err := os.MkdirAll(filepath.Dir(f.path), folderMode); err != nil {
-		return Key{}, fmt.Errorf("make the folder of the VAPID key file: %w", err)
-	}
-
-	// O_EXCL: a key that appeared meanwhile is never replaced.
-	file, err := os.OpenFile(f.path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, fileMode)
-	if err != nil {
-		return Key{}, fmt.Errorf("write the VAPID key file %s: %w", f.path, err)
-	}
-
-	_, writeErr := file.WriteString(made + "\n")
-	if err := errors.Join(writeErr, file.Close()); err != nil {
+	if err := os.WriteFile(f.path, []byte(made+"\n"), fileMode); err != nil {
 		return Key{}, fmt.Errorf("write the VAPID key file %s: %w", f.path, err)
 	}
 

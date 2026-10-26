@@ -10,7 +10,7 @@ import (
 )
 
 func TestAFileMakesTheKeyOnceAndKeepsIt(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "nudge", "vapid.key")
+	path := filepath.Join(t.TempDir(), "vapid.key")
 
 	first, err := vapid.NewFile(path).Load(t.Context())
 	if err != nil || first.Private == "" || first.Public == "" {
@@ -49,10 +49,8 @@ func TestAFileThatCantBeUsedIsAnError(t *testing.T) {
 		t.Error("a folder in place of the file gave no error")
 	}
 
-	blocker := filepath.Join(dir, "plain")
-	_ = os.WriteFile(blocker, nil, 0o600)
-
-	if _, err := vapid.NewFile(filepath.Join(blocker, "vapid.key")).Load(t.Context()); err == nil {
-		t.Error("a file in place of the folder gave no error")
+	if _, err := vapid.NewFile(filepath.Join(dir, "no", "vapid.key")).
+		Load(t.Context()); err == nil {
+		t.Error("a missing folder gave no error")
 	}
 }
