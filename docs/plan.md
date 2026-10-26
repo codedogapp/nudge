@@ -55,7 +55,7 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | `setup-agent` | `internal/setup` adds the MCP server and the skill to Copilot CLI, skipping what is there (decision 33) | Done (#36) |
 | `setup-command` | `nudge setup` runs the three steps and prints what it did; `docs/setup.md` leads with it (decision 33) | Done (#37) |
 | `multi-device` | One page for several machines, labelled (decisions 32 and 34); blocked on §6 question 7. Steps once it is answered: the agent API on the phone door, the remote client (`NUDGE_SERVER`), the machine label on the page | Blocked |
-| `swift-spike` | A spike on a native iOS app (decision 32), findings in a docs PR | Todo |
+| `swift-spike` | A spike on a native iOS app (decision 32), findings in a docs PR | Done (#39): [swift-spike.md](swift-spike.md), desk research only |
 
 **Ideas**: answer Copilot CLI's permission prompts from the phone; a button that declines a question; several questions in one `nudge ask`; a history of answers; a notification that repeats until it's answered; take a notification away once its question is answered; a notification that opens its own question; a Copilot CLI plugin that bundles the skill and the MCP server (whether a plugin's MCP config takes a `timeout` is unchecked).
 
