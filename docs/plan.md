@@ -50,7 +50,7 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | `report-tool` | `nudge mcp` registers a session when it starts, and its `report` tool sets the session's note (decision 31) | Done (#30) |
 | `sessions-page` | The page lists the sessions under the questions (decision 31) | Done (#31) |
 | `status-skill` | The skill tells the agent to report at milestones; `docs/setup.md` | Done (#32) |
-| `setup-settings` | `internal/setup` writes the settings file from `tailscale status --json`, unless it exists (decision 33) | Todo |
+| `setup-settings` | `internal/setup` writes the settings file from `tailscale status --json`, unless it exists (decision 33) | Done (#34) |
 | `setup-publish` | `internal/setup` runs `tailscale serve --bg --https=8443 8700` (decision 33) | Todo |
 | `setup-agent` | `internal/setup` adds the MCP server and the skill to Copilot CLI, skipping what is there (decision 33) | Todo |
 | `setup-command` | `nudge setup` runs the three steps and prints what it did; `docs/setup.md` leads with it (decision 33) | Todo |
