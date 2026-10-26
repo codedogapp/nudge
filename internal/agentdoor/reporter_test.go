@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"testing"
 	"testing/synctest"
+	"time"
 
 	"github.com/codedogapp/nudge/internal/agentdoor"
 )
@@ -61,6 +62,8 @@ func TestReporterStartsANewSessionWhenTheServerForgotIt(t *testing.T) {
 			t.Fatalf("Report() = %v, want nil", err)
 		}
 
+		// The server drops the old session once the bubble's clock moves on.
+		time.Sleep(time.Second)
 		synctest.Wait()
 
 		listed := agent.live.List()

@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 	"testing/synctest"
+	"time"
 	"uuid"
 
 	"github.com/codedogapp/nudge/internal/agentdoor"
@@ -32,6 +33,9 @@ func TestSessionLastsAsLongAsItsContext(t *testing.T) {
 		}
 
 		end()
+
+		// The server notices the closed connection once the bubble's clock moves on.
+		time.Sleep(time.Second)
 		synctest.Wait()
 
 		if listed := agent.live.List(); len(listed) != 0 {
