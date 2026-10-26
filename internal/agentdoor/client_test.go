@@ -14,6 +14,7 @@ import (
 	"github.com/codedogapp/nudge/internal/agentdoor"
 	"github.com/codedogapp/nudge/internal/inbox"
 	"github.com/codedogapp/nudge/internal/server"
+	"github.com/codedogapp/nudge/internal/sessions"
 )
 
 type asked struct {
@@ -192,7 +193,7 @@ func TestNewClientReachesTheSocket(t *testing.T) {
 
 	var box inbox.Inbox
 
-	go func() { served <- server.Serve(ctx, listener, agentdoor.Routes(&box)) }()
+	go func() { served <- server.Serve(ctx, listener, agentdoor.Routes(&box, new(sessions.Registry))) }()
 
 	// A question without text gets its refusal at once, so no one has to answer it.
 	_, err := agentdoor.Ask(t.Context(), agentdoor.NewClient(path), agentdoor.Question{})

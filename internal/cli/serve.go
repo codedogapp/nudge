@@ -16,6 +16,7 @@ import (
 	"github.com/codedogapp/nudge/internal/phonedoor"
 	"github.com/codedogapp/nudge/internal/push"
 	"github.com/codedogapp/nudge/internal/server"
+	"github.com/codedogapp/nudge/internal/sessions"
 	"github.com/codedogapp/nudge/internal/subscriptions"
 	"github.com/codedogapp/nudge/internal/tailscale"
 	"github.com/codedogapp/nudge/internal/vapid"
@@ -84,10 +85,12 @@ func listenAndServe(ctx context.Context, logger *slog.Logger) error {
 
 	box := inbox.Inbox{Notify: pushes(ctx, key, devices, logger)}
 
+	var live sessions.Registry
+
 	lock := tailscale.RequireLogin(given.login, given.host, logger)
 
 	return serveDoors(ctx,
-		door{"agent", agents, agentdoor.Routes(&box)},
+		door{"agent", agents, agentdoor.Routes(&box, &live)},
 		door{"phone", phones, lock(phonedoor.Routes(&box, key.Public, devices))},
 	)
 }

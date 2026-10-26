@@ -2,15 +2,11 @@ package agentdoor
 
 import (
 	"bytes"
-	"cmp"
 	"context"
 	"encoding/json/v2"
-	"errors"
 	"fmt"
-	"io"
 	"net"
 	"net/http"
-	"strings"
 )
 
 // questionsURL is where a client posts its questions. The client dials the socket whatever the
@@ -53,8 +49,7 @@ func Ask(ctx context.Context, client *http.Client, question Question) (Answer, e
 	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode != http.StatusOK {
-		reason, _ := io.ReadAll(response.Body)
-		return Answer{}, errors.New(cmp.Or(strings.TrimSpace(string(reason)), response.Status))
+		return Answer{}, refusal(response)
 	}
 
 	var got Answer
