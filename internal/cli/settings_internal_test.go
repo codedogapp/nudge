@@ -16,7 +16,7 @@ func isolate(t *testing.T) string {
 	t.Setenv("HOME", t.TempDir())
 	t.Setenv("XDG_CONFIG_HOME", "")
 
-	for _, name := range []string{loginVar, hostVar, listenVar, securityVar, subscriptionsVar} {
+	for _, name := range []string{loginVar, hostVar, listenVar, securityVar, subscriptionsVar, keyFileVar} {
 		t.Setenv(name, "")
 	}
 
@@ -47,6 +47,7 @@ func TestReadSettingsTakesTheVariableThenTheFileThenTheDefault(t *testing.T) {
 		listenVar:        "127.0.0.1:8799",
 		securityVar:      "/stand-in/security",
 		subscriptionsVar: "/env/subscriptions.json",
+		keyFileVar:       "/env/vapid.key",
 	}
 	fromVariables := settings{
 		login:         "env@example.com",
@@ -54,6 +55,7 @@ func TestReadSettingsTakesTheVariableThenTheFileThenTheDefault(t *testing.T) {
 		listen:        "127.0.0.1:8799",
 		security:      "/stand-in/security",
 		subscriptions: "/env/subscriptions.json",
+		keyFile:       "/env/vapid.key",
 	}
 
 	const everything = `{"login": "file@example.com", "host": "file.tailnet.ts.net",

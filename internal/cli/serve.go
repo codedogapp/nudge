@@ -54,7 +54,7 @@ func listenAndServe(ctx context.Context, logger *slog.Logger) error {
 	}
 
 	// The key loads in a moment; a stop that comes meanwhile ends serve right after.
-	key, err := vapid.NewKeychain(given.security).Load(context.WithoutCancel(ctx))
+	key, err := keepsKey(given).Load(context.WithoutCancel(ctx))
 	if err != nil {
 		return err
 	}
@@ -134,4 +134,18 @@ func serveDoors(ctx context.Context, doors ...door) error {
 	serving.Wait()
 
 	return errors.Join(errs...)
+}
+
+// keysKeeper is where nudge serve keeps its VAPID key.
+type keysKeeper interface {
+	Load(ctx context.Context) (vapid.Key, error)
+}
+
+// keepsKey picks the keeper: the key file when the settings name one, else the login Keychain.
+func keepsKey(given settings) keysKeeper {
+	if given.keyFile != "" {
+		return vapid.NewFile(given.keyFile)
+	}
+
+	return vapid.NewKeychain(given.security)
 }

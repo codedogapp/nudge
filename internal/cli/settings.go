@@ -17,6 +17,7 @@ const (
 	listenVar        = "NUDGE_LISTEN"
 	securityVar      = "NUDGE_SECURITY"
 	subscriptionsVar = "NUDGE_SUBSCRIPTIONS"
+	keyFileVar       = "NUDGE_VAPID_KEY_FILE"
 	defaultListen    = "127.0.0.1:8700"
 )
 
@@ -28,6 +29,7 @@ type settings struct {
 	listen        string // The phone door's address.
 	security      string // The security tool that keeps the VAPID key.
 	subscriptions string // The file that keeps the push subscriptions.
+	keyFile       string // The file that keeps the VAPID key; empty for the Keychain.
 }
 
 // readSettings reads each setting from its variable, else from the settings file, else takes its
@@ -50,6 +52,7 @@ func readSettings() (settings, error) {
 		host:     cmp.Or(os.Getenv(hostVar), file.Host),
 		listen:   cmp.Or(os.Getenv(listenVar), file.Listen, defaultListen),
 		security: cmp.Or(os.Getenv(securityVar), vapid.Security),
+		keyFile:  os.Getenv(keyFileVar),
 		subscriptions: cmp.Or(os.Getenv(subscriptionsVar), file.Subscriptions,
 			filepath.Join(config, "nudge", "subscriptions.json")),
 	}

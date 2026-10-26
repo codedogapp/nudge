@@ -221,3 +221,24 @@ func TestServeNeedsThePhoneDoorsAddress(t *testing.T) {
 		})
 	}
 }
+
+func TestServeKeepsItsKeyInTheFileThatTheSettingsName(t *testing.T) {
+	socketIn(t)
+	configure(t)
+	standIn(t, "locked") // the Keychain would fail
+
+	keyFile := filepath.Join(t.TempDir(), "vapid.key")
+	t.Setenv("NUDGE_VAPID_KEY_FILE", keyFile)
+
+	ctx, stop := context.WithCancel(t.Context())
+	stop()
+
+	var stderr strings.Builder
+	if code := (cli.Program{}).Run(ctx, []string{"serve"}, &strings.Builder{}, &stderr); code != 0 {
+		t.Fatalf("Run(serve) = %d, stderr = %q", code, stderr.String())
+	}
+
+	if _, err := os.Stat(keyFile); err != nil {
+		t.Errorf("the key file: %v", err)
+	}
+}
