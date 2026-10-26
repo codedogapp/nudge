@@ -11,6 +11,7 @@ import (
 
 	"github.com/codedogapp/nudge/internal/inbox"
 	"github.com/codedogapp/nudge/internal/phonedoor"
+	"github.com/codedogapp/nudge/internal/sessions"
 	"github.com/codedogapp/nudge/internal/subscriptions"
 )
 
@@ -43,7 +44,7 @@ func get(t *testing.T, box *inbox.Inbox, method, path string) *httptest.Response
 	t.Helper()
 
 	rec := httptest.NewRecorder()
-	phonedoor.Routes(box, pushKey, devices(t)).
+	phonedoor.Routes(box, new(sessions.Registry), pushKey, devices(t)).
 		ServeHTTP(rec, httptest.NewRequestWithContext(t.Context(), method, path, nil))
 
 	return rec

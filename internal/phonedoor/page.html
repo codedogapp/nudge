@@ -44,6 +44,24 @@
 {{- else}}
 <p class="empty">No question waits for an answer.</p>
 {{- end}}
+<section>
+<p class="project">Sessions</p>
+{{- range .Sessions}}
+<article>
+{{- with .Project}}
+<p class="project">{{.}}</p>
+{{- end}}
+{{- if .Note}}
+<p class="details">{{.Note}}</p>
+<p class="project">{{.Age}}</p>
+{{- else}}
+<p class="details">No report yet.</p>
+{{- end}}
+</article>
+{{- else}}
+<p class="empty">No agent session is running.</p>
+{{- end}}
+</section>
 </main>
 </body>
 </html>

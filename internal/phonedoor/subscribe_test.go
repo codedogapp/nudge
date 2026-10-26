@@ -14,6 +14,7 @@ import (
 
 	"github.com/codedogapp/nudge/internal/inbox"
 	"github.com/codedogapp/nudge/internal/phonedoor"
+	"github.com/codedogapp/nudge/internal/sessions"
 	"github.com/codedogapp/nudge/internal/subscriptions"
 )
 
@@ -68,7 +69,7 @@ func subscribe(
 	var box inbox.Inbox
 
 	rec := httptest.NewRecorder()
-	phonedoor.Routes(&box, pushKey, store).ServeHTTP(rec, req)
+	phonedoor.Routes(&box, new(sessions.Registry), pushKey, store).ServeHTTP(rec, req)
 
 	return rec
 }

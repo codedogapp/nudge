@@ -11,6 +11,7 @@ import (
 
 	"github.com/codedogapp/nudge/internal/inbox"
 	"github.com/codedogapp/nudge/internal/phonedoor"
+	"github.com/codedogapp/nudge/internal/sessions"
 )
 
 const gone = "This question has gone: it was answered, or its agent stopped waiting."
@@ -71,7 +72,7 @@ func serve(t *testing.T, box *inbox.Inbox, req *http.Request) *httptest.Response
 	t.Helper()
 
 	rec := httptest.NewRecorder()
-	phonedoor.Routes(box, pushKey, devices(t)).ServeHTTP(rec, req)
+	phonedoor.Routes(box, new(sessions.Registry), pushKey, devices(t)).ServeHTTP(rec, req)
 
 	return rec
 }
