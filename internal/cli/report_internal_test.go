@@ -4,6 +4,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -70,7 +71,7 @@ func TestMCPReportsUnderTheCurrentProject(t *testing.T) {
 	}
 
 	listed := live.List()
-	if len(listed) != 1 || listed[0].Project != "atlas" || listed[0].Note != "tests are green" {
+	if len(listed) != 1 || listed[0].Project != atlas() || listed[0].Note != "tests are green" {
 		t.Errorf("sessions = %+v, want atlas with its note", listed)
 	}
 }
@@ -83,4 +84,11 @@ func TestReportingFailsWithoutAConfigFolder(t *testing.T) {
 	if err == nil {
 		t.Error("report() = nil, want the error that stopped it")
 	}
+}
+
+func atlas() string {
+	host, _ := os.Hostname()
+	short, _, _ := strings.Cut(host, ".")
+
+	return "atlas (" + short + ")"
 }

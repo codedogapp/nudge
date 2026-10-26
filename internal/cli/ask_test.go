@@ -83,7 +83,7 @@ func TestAskSendsTheQuestion(t *testing.T) {
 	}
 
 	want := agentdoor.Question{
-		Project: "dotfiles",
+		Project: labelled("dotfiles"),
 		Text:    "Merge?",
 		Details: "CI is green.",
 		Options: []string{"Yes", "No"},
@@ -177,4 +177,12 @@ func TestAskReportsALostAnswer(t *testing.T) {
 		stderr.String() != want {
 		t.Errorf("Run(ask) = %d, stderr = %q, want 1 and %q", code, stderr.String(), want)
 	}
+}
+
+// labelled is the project's name with the machine's, as the page shows it.
+func labelled(project string) string {
+	host, _ := os.Hostname()
+	short, _, _ := strings.Cut(host, ".")
+
+	return project + " (" + short + ")"
 }
