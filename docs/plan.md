@@ -52,7 +52,7 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | `status-skill` | The skill tells the agent to report at milestones; `docs/setup.md` | Done (#32) |
 | `setup-settings` | `internal/setup` writes the settings file from `tailscale status --json`, unless it exists (decision 33) | Done (#34) |
 | `setup-publish` | `internal/setup` runs `tailscale serve --bg --https=8443 8700` (decision 33) | Done (#35) |
-| `setup-agent` | `internal/setup` adds the MCP server and the skill to Copilot CLI, skipping what is there (decision 33) | Todo |
+| `setup-agent` | `internal/setup` adds the MCP server and the skill to Copilot CLI, skipping what is there (decision 33) | Done (#36) |
 | `setup-command` | `nudge setup` runs the three steps and prints what it did; `docs/setup.md` leads with it (decision 33) | Todo |
 | `multi-device` | One page for several machines, labelled (decision 32); needs §6 question 6 first | Todo |
 | `swift-spike` | A spike on a native iOS app (decision 32), findings in a docs PR | Todo |
