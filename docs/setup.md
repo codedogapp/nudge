@@ -43,6 +43,7 @@ It does the steps of [Settings](#settings), [Tailscale](#tailscale) and [Agents]
 | `NUDGE_LISTEN` | `listen` | The phone door's address. Keep it on loopback: anyone who reaches it can send the headers that the lock checks | `127.0.0.1:8700` |
 | `NUDGE_SECURITY` | | The `security` tool that keeps the VAPID key. Only the tests change it, to point at a stand-in | `/usr/bin/security` |
 | `NUDGE_SOCKET` | | The agent door's socket, for `nudge serve`, `nudge ask` and `nudge mcp`. It has no key, because `nudge ask` and `nudge mcp` read only the environment | `~/Library/Application Support/nudge/agent.sock` |
+| `NUDGE_VAPID_KEY_FILE` | | A file for the VAPID key, for a host with no Keychain, such as a container. `nudge serve` makes the key there on its first start, with mode 0600, or reads the one that is there ([The VAPID key](#the-vapid-key)) | The login Keychain |
 | `NUDGE_SERVER` | | For `nudge ask` and `nudge mcp` on another machine: the https URL of the machine's `nudge serve` on the tailnet, such as `https://machine.tailnet.ts.net:8443`. When it is set, they use it in place of the socket, and the Tailscale login of the machine must be the one that `nudge serve` lets in ([the plan](plan.md), decision 35) | The socket |
 | `NUDGE_SUBSCRIPTIONS` | `subscriptions` | The file that keeps the devices' push subscriptions. In the settings file, an absolute path | `~/Library/Application Support/nudge/subscriptions.json` |
 
@@ -139,6 +140,8 @@ security find-generic-password -s nudge -a vapid-private-key -w
 ```sh
 security delete-generic-password -s nudge -a vapid-private-key
 ```
+
+With `NUDGE_VAPID_KEY_FILE` set, the key lives in that file instead, as the private key in base64url without padding, and `nudge serve` doesn't touch the Keychain. A file that isn't a key stops `nudge serve`, which never replaces it.
 
 When `security` fails, for example on a locked Keychain that can't ask for its password, or the stored key isn't valid, `nudge serve` exits 1 and says why.
 

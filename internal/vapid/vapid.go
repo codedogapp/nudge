@@ -1,4 +1,5 @@
-// Package vapid keeps the server's VAPID key, which signs its Web Pushes, in the login Keychain.
+// Package vapid keeps the server's VAPID key, which signs its Web Pushes, in the login Keychain or
+// in a file.
 package vapid
 
 import (
@@ -61,12 +62,11 @@ func (k Keychain) Load(ctx context.Context) (Key, error) {
 
 // create makes a key, adds it to the Keychain, and reads it back to check that it is there.
 func (k Keychain) create(ctx context.Context) (Key, error) {
-	private, err := ecdh.P256().GenerateKey(rand.Reader)
+	made, err := generate()
 	if err != nil {
-		return Key{}, fmt.Errorf("make a VAPID key: %w", err)
+		return Key{}, err
 	}
 
-	made := base64.RawURLEncoding.EncodeToString(private.Bytes())
 	if err := k.add(ctx, made); err != nil {
 		return Key{}, err
 	}
@@ -86,21 +86,41 @@ func (k Keychain) create(ctx context.Context) (Key, error) {
 	return parse(stored)
 }
 
-// parse checks that the stored private key is one, and derives its public half.
-func parse(stored string) (Key, error) {
+// generate makes a private key, base64url-encoded without padding.
+func generate() (string, error) {
+	private, err := ecdh.P256().GenerateKey(rand.Reader)
+	if err != nil {
+		return "", fmt.Errorf("make a VAPID key: %w", err)
+	}
+
+	return base64.RawURLEncoding.EncodeToString(private.Bytes()), nil
+}
+
+// derive checks that the stored private key is one, and derives its public half.
+func derive(stored string) (Key, error) {
 	raw, err := base64.RawURLEncoding.DecodeString(stored)
 	if err != nil {
-		return Key{}, invalid(err)
+		return Key{}, err
 	}
 
 	private, err := ecdh.P256().NewPrivateKey(raw)
 	if err != nil {
-		return Key{}, invalid(err)
+		return Key{}, err
 	}
 
 	public := base64.RawURLEncoding.EncodeToString(private.PublicKey().Bytes())
 
 	return Key{Private: stored, Public: public}, nil
+}
+
+// parse is derive for a key that the Keychain stored: its error names the Keychain item.
+func parse(stored string) (Key, error) {
+	key, err := derive(stored)
+	if err != nil {
+		return Key{}, invalid(err)
+	}
+
+	return key, nil
 }
 
 // invalid reports a stored key that isn't a P-256 private key in base64url without padding.
