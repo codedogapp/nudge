@@ -89,9 +89,12 @@ func listenAndServe(ctx context.Context, logger *slog.Logger) error {
 
 	lock := tailscale.RequireLogin(given.login, given.host, logger)
 
+	agent := agentdoor.Routes(&box, &live)
+	phone := phonedoor.Routes(&box, &live, key.Public, devices)
+
 	return serveDoors(ctx,
-		door{"agent", agents, agentdoor.Routes(&box, &live)},
-		door{"phone", phones, lock(phonedoor.Routes(&box, &live, key.Public, devices))},
+		door{"agent", agents, agent},
+		door{"phone", phones, lock(tailnetDoor(phone, agent))},
 	)
 }
 
