@@ -55,7 +55,7 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | `setup-agent` | `internal/setup` adds the MCP server and the skill to Copilot CLI, skipping what is there (decision 33) | Done (#36) |
 | `setup-command` | `nudge setup` runs the three steps and prints what it did; `docs/setup.md` leads with it (decision 33) | Done (#37) |
 | `agent-api` | The phone door also serves the agent door's endpoints under `/agent/`, behind the same lock (decisions 34 and 35) | Done (#41) |
-| `remote-client` | `nudge ask` and `nudge mcp` use `NUDGE_SERVER`, an https URL, in place of the socket when it is set (decision 35) | Todo |
+| `remote-client` | `nudge ask` and `nudge mcp` use `NUDGE_SERVER`, an https URL, in place of the socket when it is set (decision 35) | Done (#42) |
 | `machine-label` | A question and a session carry the machine's name, and the page shows it (decision 34) | Todo |
 | `vapid-file` | `nudge serve` can take its VAPID key from a file or the environment, for a host with no Keychain (decision 35) | Todo |
 | `container` | A container image and Kubernetes manifests for `nudge serve`, with the Tailscale operator's ingress (decision 35); the details are open, §6 question 8 | Todo |

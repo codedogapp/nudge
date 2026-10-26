@@ -13,13 +13,13 @@ import (
 // fails with why.
 func reporting(ctx context.Context) mcptool.Report {
 	project, projectErr := currentProject()
-	path, pathErr := agentdoor.SocketPath()
+	client, clientErr := agentdoor.Connect()
 
-	if err := errors.Join(projectErr, pathErr); err != nil {
+	if err := errors.Join(projectErr, clientErr); err != nil {
 		return func(context.Context, string) error { return err }
 	}
 
-	reporter := agentdoor.NewReporter(ctx, agentdoor.NewClient(path), project)
+	reporter := agentdoor.NewReporter(ctx, client, project)
 
 	// nudge serve may not be running yet; the first report starts the session then.
 	_ = reporter.Register()

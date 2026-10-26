@@ -67,12 +67,12 @@ func send(ctx context.Context, question agentdoor.Question) (agentdoor.Answer, e
 
 	question.Project = project
 
-	path, err := agentdoor.SocketPath()
+	client, err := agentdoor.Connect()
 	if err != nil {
 		return agentdoor.Answer{}, err
 	}
 
-	return agentdoor.Ask(ctx, agentdoor.NewClient(path), question)
+	return agentdoor.Ask(ctx, client, question)
 }
 
 // currentProject is the name of the project in the current folder.
