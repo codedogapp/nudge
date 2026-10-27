@@ -41,7 +41,8 @@ func TestRunPrintsTheUsage(t *testing.T) {
 		{"ask with an unknown flag", []string{"ask", "--colour", "red", "Merge?"}},
 		{"ask for help", []string{"ask", "--help"}},
 		{"mcp with an argument", []string{"mcp", "now"}},
-		{"setup with an argument", []string{"setup", "now"}},
+		{"setup with no server", []string{"setup"}},
+		{"setup with two", []string{"setup", "a", "b"}},
 	}
 
 	for _, test := range tests {

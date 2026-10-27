@@ -11,7 +11,7 @@ import (
 	"github.com/codedogapp/nudge/internal/cli"
 )
 
-// version is nudge's version. Homebrew's formula sets it with -ldflags "-X main.version=v1.2.3";
+// version is nudge's version. A release build sets it with -ldflags "-X main.version=v1.2.3";
 // other builds leave it empty, and nudge takes the version that Go's build info recorded.
 var version string
 

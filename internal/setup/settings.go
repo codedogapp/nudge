@@ -1,84 +1,46 @@
 package setup
 
 import (
-	"context"
-	"encoding/json/jsontext"
-	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io/fs"
+	"net/url"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
 )
 
-// Folder and file modes: only the user can open them, as nudge serve needs.
+// Folder and file modes: only the user can open them.
 const (
 	folderMode = 0o700
 	fileMode   = 0o600
 )
 
-type tailscaleStatus struct {
-	Self struct {
-		UserID  int64
-		DNSName string
-	}
-	User map[string]struct{ LoginName string }
-}
-
-type settings struct {
-	Login string `json:"login"`
-	Host  string `json:"host"`
-}
-
-// WriteSettings writes the settings file at path from what `tailscale status --json` says about
-// this Mac, and returns a line that says what it did. A file that exists stays as it is.
-func WriteSettings(ctx context.Context, run Run, path string) (string, error) {
-	if _, err := os.Stat(path); err == nil {
-		return "settings: kept " + path, nil
-	} else if !errors.Is(err, fs.ErrNotExist) {
-		return "", fmt.Errorf("check the settings file: %w", err)
-	}
-
-	out, err := run(ctx, "tailscale", "status", "--json")
-	if err != nil {
-		return "", fmt.Errorf("read the tailnet's status: %w", err)
-	}
-
-	found, err := parseStatus(out)
-	if err != nil {
-		return "", err
-	}
-
-	data, err := json.Marshal(found, jsontext.WithIndent("  "))
-	if err != nil {
-		return "", fmt.Errorf("encode the settings: %w", err)
+// WriteSettings writes the settings file at path with the server's address, an https URL, and
+// returns a line that says what it did. A file that exists stays as it is.
+func WriteSettings(path, server string) (string, error) {
+	if parsed, err := url.Parse(
+		server,
+	); err != nil || parsed.Scheme != "https" ||
+		parsed.Host == "" {
+		return "", fmt.Errorf("the server %q isn't an https URL", server)
 	}
 
 	if err := os.MkdirAll(filepath.Dir(path), folderMode); err != nil {
 		return "", fmt.Errorf("make the settings folder: %w", err)
 	}
 
-	if err := os.WriteFile(path, append(data, '\n'), fileMode); err != nil {
+	//nolint:gosec // G304: the path is nudge's own settings file, in the user's config folder.
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, fileMode)
+	if errors.Is(err, fs.ErrExist) {
+		return "settings: kept " + path, nil
+	}
+
+	if err != nil {
 		return "", fmt.Errorf("write the settings file: %w", err)
 	}
 
-	return "settings: wrote " + path, nil
-}
+	// %q's escapes are JSON's, for a URL that url.Parse took.
+	_, err = fmt.Fprintf(file, "{\n  \"server\": %q\n}\n", server)
 
-func parseStatus(out []byte) (settings, error) {
-	var status tailscaleStatus
-	if err := json.Unmarshal(out, &status); err != nil {
-		return settings{}, fmt.Errorf("read the tailnet's status: %w", err)
-	}
-
-	login := status.User[strconv.FormatInt(status.Self.UserID, 10)].LoginName
-	host := strings.TrimSuffix(status.Self.DNSName, ".")
-
-	if login == "" || host == "" {
-		return settings{}, errors.New("the tailnet's status has no login or host: is Tailscale up?")
-	}
-
-	return settings{Login: login, Host: host}, nil
+	return "settings: wrote " + path, errors.Join(err, file.Close())
 }

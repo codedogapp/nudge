@@ -11,7 +11,7 @@ import (
 	"github.com/codedogapp/nudge/internal/setup"
 )
 
-// copilot is a fake brew and Copilot CLI that records each command line.
+// copilot is a fake Copilot CLI that records each command line.
 type copilot struct {
 	ran       []string
 	hasServer bool
@@ -26,8 +26,6 @@ func (tool *copilot) run(_ context.Context, name string, args ...string) ([]byte
 	switch {
 	case tool.failing != "" && strings.HasPrefix(line, tool.failing):
 		return nil, tool.failWith
-	case strings.HasPrefix(line, "brew"):
-		return []byte("/opt/homebrew/opt/nudge\n"), nil
 	case strings.HasPrefix(line, "copilot mcp get") && !tool.hasServer:
 		return nil, &exec.ExitError{}
 	}
@@ -38,14 +36,14 @@ func (tool *copilot) run(_ context.Context, name string, args ...string) ([]byte
 func TestCopilotGetsTheServerAndTheSkill(t *testing.T) {
 	tool := &copilot{}
 
-	lines, err := setup.AddToCopilot(t.Context(), tool.run)
+	lines, err := setup.AddToCopilot(t.Context(), tool.run, "/bin/nudge", "/skills")
 	if err != nil || len(lines) != 2 {
 		t.Fatalf("got %v, %v", lines, err)
 	}
 
 	for _, want := range []string{
-		"copilot mcp add --timeout 86400000 nudge -- /opt/homebrew/opt/nudge/bin/nudge mcp",
-		"copilot skill add /opt/homebrew/opt/nudge/share/nudge/skills",
+		"copilot mcp add --timeout 86400000 nudge -- /bin/nudge mcp",
+		"copilot skill add /skills",
 	} {
 		if !slices.Contains(tool.ran, want) {
 			t.Errorf("ran %q, want %q among them", tool.ran, want)
@@ -56,7 +54,7 @@ func TestCopilotGetsTheServerAndTheSkill(t *testing.T) {
 func TestAnExistingServerStays(t *testing.T) {
 	tool := &copilot{hasServer: true}
 
-	lines, err := setup.AddToCopilot(t.Context(), tool.run)
+	lines, err := setup.AddToCopilot(t.Context(), tool.run, "/bin/nudge", "/skills")
 	if err != nil || !strings.Contains(lines[0], "kept") {
 		t.Fatalf("got %v, %v", lines, err)
 	}
@@ -71,7 +69,6 @@ func TestAnExistingServerStays(t *testing.T) {
 func TestEachFailureIsAnError(t *testing.T) {
 	boom := errors.New("boom")
 	tests := map[string]*copilot{
-		"no brew":         {failing: "brew", failWith: boom},
 		"no copilot":      {failing: "copilot mcp get", failWith: boom},
 		"the add fails":   {failing: "copilot mcp add", failWith: boom},
 		"the skill fails": {failing: "copilot skill add", failWith: boom},
@@ -79,7 +76,15 @@ func TestEachFailureIsAnError(t *testing.T) {
 
 	for name, broken := range tests {
 		t.Run(name, func(t *testing.T) {
-			if _, err := setup.AddToCopilot(t.Context(), broken.run); !errors.Is(err, boom) {
+			if _, err := setup.AddToCopilot(
+				t.Context(),
+				broken.run,
+				"/bin/nudge",
+				"/skills",
+			); !errors.Is(
+				err,
+				boom,
+			) {
 				t.Errorf("err = %v, want it to wrap boom", err)
 			}
 		})

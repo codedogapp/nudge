@@ -14,7 +14,7 @@ import (
 const usage = `usage: nudge serve
        nudge ask [--option TEXT]... [--details TEXT] QUESTION
        nudge mcp
-       nudge setup`
+       nudge setup SERVER`
 
 // The exit codes: done, an error, and a usage error.
 const (
@@ -42,11 +42,11 @@ func (p Program) Run(ctx context.Context, args []string, stdout, stderr io.Write
 	case "mcp":
 		return p.serveMCP(ctx, args[1:], &mcp.StdioTransport{}, stderr)
 	case "setup":
-		if len(args) != 1 {
+		if len(args) != 2 {
 			return misused(stderr)
 		}
 
-		return runSetup(ctx, setup.Exec, stdout, stderr)
+		return setupJob{run: setup.Exec, server: args[1]}.runSetup(ctx, stdout, stderr)
 	default:
 		return misused(stderr)
 	}
