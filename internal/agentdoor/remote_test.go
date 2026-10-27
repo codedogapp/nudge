@@ -45,9 +45,8 @@ func TestTheServerMustBeAnHTTPSURL(t *testing.T) {
 
 func TestConnectChoosesTheSocketOrTheServer(t *testing.T) {
 	t.Setenv("NUDGE_SOCKET", "/tmp/nudge-test.sock")
-	t.Setenv("NUDGE_SERVER", "")
 
-	client, err := Connect()
+	client, err := Connect("")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,9 +55,7 @@ func TestConnectChoosesTheSocketOrTheServer(t *testing.T) {
 		t.Errorf("transport = %T, want the socket's", client.Transport)
 	}
 
-	t.Setenv("NUDGE_SERVER", "https://host.tailnet.ts.net:8443")
-
-	if client, err = Connect(); err != nil {
+	if client, err = Connect("https://host.tailnet.ts.net:8443"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -66,9 +63,7 @@ func TestConnectChoosesTheSocketOrTheServer(t *testing.T) {
 		t.Errorf("transport = %T, want the remote's", client.Transport)
 	}
 
-	t.Setenv("NUDGE_SERVER", "http://insecure")
-
-	if _, err := Connect(); err == nil {
+	if _, err := Connect("http://insecure"); err == nil {
 		t.Error("an http URL gave no error")
 	}
 }

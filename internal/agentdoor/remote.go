@@ -5,11 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
-	"os"
 )
-
-// serverVar names the variable that holds the https URL of a nudge serve on another machine.
-const serverVar = "NUDGE_SERVER"
 
 // remote sends each request to the agent endpoints of a nudge serve on another machine.
 type remote struct {
@@ -27,10 +23,10 @@ func (r remote) RoundTrip(req *http.Request) (*http.Response, error) {
 	return r.base.RoundTrip(moved)
 }
 
-// Connect returns the client for the agent door: one that reaches the nudge serve at NUDGE_SERVER
-// through the tailnet, when it is set, else one that reaches the agent socket.
-func Connect() (*http.Client, error) {
-	if server := os.Getenv(serverVar); server != "" {
+// Connect returns the client for the agent door: one that reaches the nudge serve at server, an
+// https URL, through the tailnet, when server is set, else one that reaches the agent socket.
+func Connect(server string) (*http.Client, error) {
+	if server != "" {
 		return newRemote(server, http.DefaultTransport)
 	}
 
@@ -47,7 +43,7 @@ func Connect() (*http.Client, error) {
 func newRemote(server string, base http.RoundTripper) (*http.Client, error) {
 	parsed, err := url.Parse(server)
 	if err != nil || parsed.Scheme != "https" || parsed.Host == "" {
-		return nil, fmt.Errorf("%s must be an https URL: %w", serverVar,
+		return nil, fmt.Errorf("the server must be an https URL: %w",
 			errors.Join(err, fmt.Errorf("got %q", server)))
 	}
 

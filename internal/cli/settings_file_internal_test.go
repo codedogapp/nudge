@@ -25,12 +25,14 @@ func TestReadSettingsFileReadsTheSettings(t *testing.T) {
 		{
 			name: "every key",
 			data: `{"login": "user@example.com", "host": "machine.tailnet.ts.net",
-				"listen": "127.0.0.1:8799", "subscriptions": "/stand-in/subscriptions.json"}`,
+				"listen": "127.0.0.1:8799", "subscriptions": "/stand-in/subscriptions.json",
+				"server": "https://nudge.tailnet.ts.net"}`,
 			want: fileSettings{
 				Login:         "user@example.com",
 				Host:          "machine.tailnet.ts.net",
 				Listen:        "127.0.0.1:8799",
 				Subscriptions: "/stand-in/subscriptions.json",
+				Server:        "https://nudge.tailnet.ts.net",
 			},
 		},
 		{

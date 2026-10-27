@@ -13,7 +13,7 @@ import (
 // fails with why.
 func reporting(ctx context.Context) mcptool.Report {
 	project, projectErr := currentProject()
-	client, clientErr := agentdoor.Connect()
+	client, clientErr := connect()
 
 	if err := errors.Join(projectErr, clientErr); err != nil {
 		return func(context.Context, string) error { return err }
