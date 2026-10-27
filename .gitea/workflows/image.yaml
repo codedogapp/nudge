@@ -23,8 +23,6 @@ jobs:
     timeout-minutes: 15
     env:
       BUILDKIT_HOST: tcp://buildkitd.buildkit.svc:1234
-      REGISTRY: git.tail9e9088.ts.net
-      IMAGE: git.tail9e9088.ts.net/codedogapp/nudge
       # renovate: datasource=github-releases depName=moby/buildkit
       BUILDKIT_VERSION: v0.34.1
     steps:
@@ -32,6 +30,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
+      - name: Name the registry
+        run: |
+          # Gitea's own address, so that the tailnet's name stays out of this public repo.
+          echo "REGISTRY=${GITHUB_SERVER_URL#https://}" >> "$GITHUB_ENV"
+          echo "IMAGE=${GITHUB_SERVER_URL#https://}/codedogapp/nudge" >> "$GITHUB_ENV"
       - name: Install buildctl
         run: |
           curl -fsSL "https://github.com/moby/buildkit/releases/download/$BUILDKIT_VERSION/buildkit-$BUILDKIT_VERSION.linux-amd64.tar.gz" \
