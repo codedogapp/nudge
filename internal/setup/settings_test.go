@@ -1,8 +1,6 @@
 package setup_test
 
 import (
-	"context"
-	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,35 +9,21 @@ import (
 	"github.com/codedogapp/nudge/internal/setup"
 )
 
-const status = `{"Self":{"UserID":42,"DNSName":"machine.tailnet.ts.net."},
-"User":{"42":{"LoginName":"user@example.com"},"7":{"LoginName":"other@example.com"}}}`
-
-func answering(out string, err error) setup.Run {
-	return func(context.Context, string, ...string) ([]byte, error) { return []byte(out), err }
-}
-
-func TestSettingsComeFromTheTailnetsStatus(t *testing.T) {
+func TestSettingsHoldTheServer(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "nudge", "settings.json")
 
-	line, err := setup.WriteSettings(t.Context(), answering(status, nil), path)
-	if err != nil {
-		t.Fatal(err)
+	line, err := setup.WriteSettings(path, "https://nudge.tailnet.ts.net")
+	if err != nil || !strings.HasPrefix(line, "settings: wrote ") {
+		t.Fatalf("got %q, %v", line, err)
 	}
 
 	data, _ := os.ReadFile(filepath.Clean(path))
-	for _, want := range []string{`"login": "user@example.com"`, `"host": "machine.tailnet.ts.net"`} {
-		if !strings.Contains(string(data), want) {
-			t.Errorf("file = %s, want it to contain %s", data, want)
-		}
-	}
-
-	if !strings.HasPrefix(line, "settings: wrote ") {
-		t.Errorf("line = %q", line)
+	if !strings.Contains(string(data), `"server": "https://nudge.tailnet.ts.net"`) {
+		t.Errorf("file = %s", data)
 	}
 
 	for _, p := range []string{filepath.Dir(path), path} {
-		info, _ := os.Stat(p)
-		if info.Mode().Perm()&0o077 != 0 {
+		if info, _ := os.Stat(p); info.Mode().Perm()&0o077 != 0 {
 			t.Errorf("%s is open to others: %v", p, info.Mode())
 		}
 	}
@@ -49,61 +33,52 @@ func TestAnExistingFileStays(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "settings.json")
 	_ = os.WriteFile(path, []byte("mine"), 0o600)
 
-	line, err := setup.WriteSettings(t.Context(), answering("", errors.New("must not run")), path)
-	if err != nil {
-		t.Fatal(err)
+	if line, err := setup.WriteSettings(path, "https://x.ts.net"); err != nil ||
+		!strings.Contains(line, "kept") {
+		t.Fatalf("got %q, %v", line, err)
 	}
 
 	if data, _ := os.ReadFile(filepath.Clean(path)); string(data) != "mine" {
-		t.Errorf("file = %q, want it kept", data)
-	}
-
-	if !strings.HasPrefix(line, "settings: kept ") {
-		t.Errorf("line = %q", line)
+		t.Errorf("file = %q", data)
 	}
 }
 
-func TestStatusProblemsAreErrors(t *testing.T) {
-	tests := map[string]setup.Run{
-		"the command fails": answering("", errors.New("not installed")),
-		"not JSON":          answering("up", nil),
-		"no login": answering(
-			`{"Self":{"UserID":1,"DNSName":"a.b.ts.net."},"User":{}}`,
-			nil,
-		),
-		"no host": answering(
-			`{"Self":{"UserID":1},"User":{"1":{"LoginName":"a@b"}}}`,
-			nil,
-		),
-	}
-
-	for name, run := range tests {
-		t.Run(name, func(t *testing.T) {
-			path := filepath.Join(t.TempDir(), "settings.json")
-
-			if _, err := setup.WriteSettings(t.Context(), run, path); err == nil {
-				t.Error("got no error")
-			}
-
-			if _, err := os.Stat(path); err == nil {
-				t.Error("wrote a file anyway")
-			}
-		})
+func TestTheServerMustBeAnHTTPSURL(t *testing.T) {
+	for _, server := range []string{"", "nudge.ts.net", "http://nudge.ts.net", "https://"} {
+		path := filepath.Join(t.TempDir(), "settings.json")
+		if _, err := setup.WriteSettings(path, server); err == nil {
+			t.Errorf("WriteSettings(%q) gave no error", server)
+		}
 	}
 }
 
-func TestExecReturnsOutputAndNamesFailures(t *testing.T) {
-	out, err := setup.Exec(t.Context(), "echo", "hi")
-	if err != nil || string(out) != "hi\n" {
-		t.Errorf("got %q, %v", out, err)
+func TestTheFolderMustBeWritable(t *testing.T) {
+	file := filepath.Join(t.TempDir(), "file")
+	_ = os.WriteFile(file, nil, 0o600)
+
+	if _, err := setup.WriteSettings(
+		filepath.Join(file, "s.json"),
+		"https://x.ts.net",
+	); err == nil {
+		t.Error("a path below a file gave no error")
 	}
 
-	_, err = setup.Exec(t.Context(), "sh", "-c", "echo boom >&2; exit 3")
-	if err == nil || !strings.Contains(err.Error(), "boom") {
-		t.Errorf("err = %v, want the stderr", err)
+	if err := setup.WriteSkill(filepath.Join(file, "skills")); err == nil {
+		t.Error("a skill folder below a file gave no error")
+	}
+}
+
+func TestTheSkillIsWritten(t *testing.T) {
+	folder := t.TempDir()
+
+	for range 2 {
+		if err := setup.WriteSkill(folder); err != nil {
+			t.Fatal(err)
+		}
 	}
 
-	if _, err = setup.Exec(t.Context(), "nudge-no-such-tool"); err == nil {
-		t.Error("got no error for a missing tool")
+	data, err := os.ReadFile(filepath.Clean(filepath.Join(folder, "nudge", "SKILL.md")))
+	if err != nil || !strings.Contains(string(data), "name: nudge") {
+		t.Errorf("skill = %q, %v", data, err)
 	}
 }

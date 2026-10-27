@@ -1,5 +1,5 @@
-// Package setup does the one-time work that nudge needs on a new Mac: its settings file, the
-// tailnet's publication of the phone door, and the agent's entries for the MCP server and the skill.
+// Package setup does the one-time work that nudge needs on a new machine: its settings file, and
+// the agent's entries for the MCP server and the skill.
 package setup
 
 import (

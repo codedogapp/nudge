@@ -5,33 +5,20 @@ import (
 	"errors"
 	"fmt"
 	"os/exec"
-	"path/filepath"
-	"strings"
 )
 
-const (
-	formula = "codedogapp/tap/nudge"
-	// The tool call waits for the user's answer, so its timeout is a day.
-	mcpTimeout = "86400000"
-)
+// The tool call waits for the user's answer, so its timeout is a day.
+const mcpTimeout = "86400000"
 
-// AddToCopilot adds nudge's MCP server and its skill to Copilot CLI, and returns a line for each
-// that says what it did. Both paths lie under Homebrew's prefix for the formula, which an
-// upgrade keeps. An MCP server that Copilot CLI already has stays as it is.
-func AddToCopilot(ctx context.Context, run Run) ([]string, error) {
-	out, err := run(ctx, "brew", "--prefix", formula)
-	if err != nil {
-		return nil, fmt.Errorf("find the nudge formula: %w", err)
-	}
-
-	prefix := strings.TrimSpace(string(out))
-
-	server, err := addServer(ctx, run, filepath.Join(prefix, "bin", "nudge"))
+// AddToCopilot adds nudge's MCP server, which runs bin, and the skill in skills to Copilot CLI,
+// and returns a line for each that says what it did. An MCP server that Copilot CLI already has
+// stays as it is.
+func AddToCopilot(ctx context.Context, run Run, bin, skills string) ([]string, error) {
+	server, err := addServer(ctx, run, bin)
 	if err != nil {
 		return nil, err
 	}
 
-	skills := filepath.Join(prefix, "share", "nudge", "skills")
 	if _, err := run(ctx, "copilot", "skill", "add", skills); err != nil {
 		return nil, fmt.Errorf("add the skill: %w", err)
 	}

@@ -5,24 +5,38 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/codedogapp/nudge/internal/setup"
 )
 
-const afterSetup = `Next: restart the service if it runs (brew services restart codedogapp/tap/nudge),
-open the page on the iPhone, add it to the Home Screen and turn notifications on (docs/setup.md).`
+const afterSetup = `Start a Copilot session with /nudge to ask on the phone (docs/setup.md).`
 
-// runSetup does the setup steps in order, prints what each did, and stops at the first that fails.
-func runSetup(ctx context.Context, run setup.Run, stdout, stderr io.Writer) int {
+// setupJob is what nudge setup does: the commands it runs, and the server it points at.
+type setupJob struct {
+	run    setup.Run
+	server string
+}
+
+// runSetup points this machine at the nudge server, adds nudge to Copilot CLI, prints what each
+// step did, and stops at the first that fails.
+func (job setupJob) runSetup(ctx context.Context, stdout, stderr io.Writer) int {
 	config, err := os.UserConfigDir()
 	if err != nil {
 		return failed(stderr, "setup", fmt.Errorf("find the config folder: %w", err))
 	}
 
+	bin, err := os.Executable()
+	if err != nil {
+		return failed(stderr, "setup", fmt.Errorf("find this program: %w", err))
+	}
+
+	skills := filepath.Join(config, "nudge", "skills")
+
 	steps := []func() ([]string, error){
-		func() ([]string, error) { return one(setup.WriteSettings(ctx, run, settingsFile(config))) },
-		func() ([]string, error) { return one(setup.Publish(ctx, run)) },
-		func() ([]string, error) { return setup.AddToCopilot(ctx, run) },
+		func() ([]string, error) { return one(setup.WriteSettings(settingsFile(config), job.server)) },
+		func() ([]string, error) { return nil, setup.WriteSkill(skills) },
+		func() ([]string, error) { return setup.AddToCopilot(ctx, job.run, bin, skills) },
 	}
 
 	for _, step := range steps {
