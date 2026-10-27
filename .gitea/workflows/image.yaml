@@ -1,8 +1,9 @@
 # Builds the container image with BuildKit and pushes it to Gitea's registry, on every push to
-# main and on every v* tag, in the homelab's Gitea, which mirrors this repository (docs/plan.md,
+# main, on every v* tag and on demand, in the homelab's Gitea, which mirrors this repository (docs/plan.md,
 # decision 36). GitHub ignores .gitea/.
 name: image
 on:
+  workflow_dispatch:
   push:
     branches:
       - main
