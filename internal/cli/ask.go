@@ -67,7 +67,7 @@ func send(ctx context.Context, question agentdoor.Question) (agentdoor.Answer, e
 
 	question.Project = project
 
-	client, err := agentdoor.Connect()
+	client, err := connect()
 	if err != nil {
 		return agentdoor.Answer{}, err
 	}

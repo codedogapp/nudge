@@ -3,9 +3,11 @@ package cli
 import (
 	"cmp"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 
+	"github.com/codedogapp/nudge/internal/agentdoor"
 	"github.com/codedogapp/nudge/internal/vapid"
 )
 
@@ -18,6 +20,7 @@ const (
 	securityVar      = "NUDGE_SECURITY"
 	subscriptionsVar = "NUDGE_SUBSCRIPTIONS"
 	keyFileVar       = "NUDGE_VAPID_KEY_FILE"
+	serverVar        = "NUDGE_SERVER"
 	defaultListen    = "127.0.0.1:8700"
 )
 
@@ -71,4 +74,20 @@ func readSettings() (settings, error) {
 // missing is the error for a setting that neither its variable nor the settings file gives.
 func missing(name, path, key string) error {
 	return fmt.Errorf("%s is not set, and %s has no %q", name, path, key)
+}
+
+// connect returns the agent door's client: for the nudge serve at NUDGE_SERVER, else at the
+// settings file's "server", else for the agent socket.
+func connect() (*http.Client, error) {
+	config, err := os.UserConfigDir()
+	if err != nil {
+		return nil, fmt.Errorf("find the config folder: %w", err)
+	}
+
+	file, err := readSettingsFile(settingsFile(config))
+	if err != nil {
+		return nil, err
+	}
+
+	return agentdoor.Connect(cmp.Or(os.Getenv(serverVar), file.Server))
 }

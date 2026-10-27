@@ -15,6 +15,7 @@ type fileSettings struct {
 	Host          string `json:"host"`
 	Listen        string `json:"listen"`
 	Subscriptions string `json:"subscriptions"`
+	Server        string `json:"server"`
 }
 
 // settingsFile is the settings file's path: nudge/settings.json in the user's config folder,
