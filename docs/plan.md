@@ -59,7 +59,7 @@ This document is the source of truth for scope and the work breakdown. How we wo
 | `machine-label` | A question and a session carry the machine's name, and the page shows it (decision 34); done by naming the project "project (machine)" on the client, which the page and the push title show as they are | Done (#43) |
 | `vapid-file` | `nudge serve` can take its VAPID key from a file or the environment, for a host with no Keychain (decision 35); it is `NUDGE_VAPID_KEY_FILE`, with no key in the settings file | Done (#44) |
 | `ingress-check` | A throwaway pod behind a `tailscale` Ingress in the homelab: does the proxy send `Tailscale-User-Login` and the Ingress's name as `Host`, and does it keep a request open for hours (risk 12). Done: the proxy sends both; a request held 330 s was answered; hours untested | Done |
-| `container-image` | A Dockerfile in this repo: a static `linux/amd64` Go binary, non-root, `nudge serve` as the entrypoint | Todo |
+| `container-image` | A Dockerfile in this repo: a static `linux/amd64` Go binary, non-root, `nudge serve` as the entrypoint. Done: it cross-compiles on the build host (QEMU crashed the Go toolchain on a Mac); 5.7 MB; ran with a read-only root and answered 200 with the login header and 403 without | Done |
 | `server-setting` | A `server` key in the settings file, read by `nudge ask` and `nudge mcp` as `NUDGE_SERVER` is (decision 36) | Todo |
 | `image-workflow` | `.gitea/workflows/image.yaml`: builds with BuildKit and pushes `git.tail9e9088.ts.net/codedogapp/nudge:<tag>` from the Gitea mirror | Todo |
 | `k8s-manifests` | `cluster/nudge/` in the homelab repo (plain YAML, Flux): Deployment, volume, Service, Ingress, and a doc there (decision 36) | Todo |
