@@ -1,0 +1,57 @@
+# Builds the container image with BuildKit and pushes it to Gitea's registry, on every push to
+# main and on every v* tag, in the homelab's Gitea, which mirrors this repository (docs/plan.md,
+# decision 36). GitHub ignores .gitea/.
+name: image
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - v*
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+defaults:
+  run:
+    shell: bash
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      BUILDKIT_HOST: tcp://buildkitd.buildkit.svc:1234
+      REGISTRY: git.tail9e9088.ts.net
+      IMAGE: git.tail9e9088.ts.net/codedogapp/nudge
+      # renovate: datasource=github-releases depName=moby/buildkit
+      BUILDKIT_VERSION: v0.34.1
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Install buildctl
+        run: |
+          curl -fsSL "https://github.com/moby/buildkit/releases/download/$BUILDKIT_VERSION/buildkit-$BUILDKIT_VERSION.linux-amd64.tar.gz" \
+            | tar -xz -C /usr/local bin/buildctl
+      - name: Log in to the registry
+        env:
+          TOKEN: ${{ secrets.REGISTRY_TOKEN }}
+        run: |
+          mkdir -p ~/.docker
+          auth=$(printf 'bakh:%s' "$TOKEN" | base64 -w0)
+          printf '{"auths":{"%s":{"auth":"%s"}}}' "$REGISTRY" "$auth" > ~/.docker/config.json
+      - name: Build and push
+        run: |
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            version=$GITHUB_REF_NAME
+            names="$IMAGE:$version"
+          else
+            version=$(git describe --tags --always)
+            names="$IMAGE:main,$IMAGE:sha-${GITHUB_SHA:0:7}"
+          fi
+          buildctl build --frontend dockerfile.v0 \
+            --local context=. --local dockerfile=. \
+            --opt platform=linux/amd64 --opt "build-arg:VERSION=$version" \
+            --output "type=image,\"name=$names\",push=true"
