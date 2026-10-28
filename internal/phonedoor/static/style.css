@@ -182,6 +182,12 @@ button:hover {
   color: var(--ink);
 }
 
+.actions {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
 /* The notifications' state and button look like Bakhyard's header links. Their line is no taller
    than the phone's title, so the header keeps its height when they show. */
 .push {
@@ -196,15 +202,19 @@ p.push {
   color: var(--ink-muted);
 }
 
+a.push,
 button.push {
   /* The tap target stays 44 px tall, but the header's row makes room only for the text. */
   margin-block: -14px;
-  padding: 0;
+  padding: 14px 0;
   border: 0;
   background: none;
+  color: inherit;
+  text-decoration: none;
   text-underline-offset: 4px;
 }
 
+a.push:hover,
 button.push:enabled:hover {
   text-decoration-line: underline;
 }
