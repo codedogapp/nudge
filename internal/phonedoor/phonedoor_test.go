@@ -181,6 +181,15 @@ func TestPageCarriesThePushKey(t *testing.T) {
 	}
 }
 
+func TestPageHasARefreshLink(t *testing.T) {
+	var box inbox.Inbox
+
+	body := get(t, &box, http.MethodGet, "/").Body.String()
+	if want := `<a class="push" href="/">Refresh</a>`; !strings.Contains(body, want) {
+		t.Errorf("page = %s, want it to contain %s", body, want)
+	}
+}
+
 func TestDoorServesOnlyItsRoutes(t *testing.T) {
 	tests := []struct {
 		method, path string
