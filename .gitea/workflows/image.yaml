@@ -23,6 +23,10 @@ jobs:
     timeout-minutes: 15
     env:
       BUILDKIT_HOST: tcp://buildkitd.buildkit.svc:1234
+      # The registry's host, an organisation variable in Gitea, keeps the tailnet's name out of
+      # this public repo. GITHUB_SERVER_URL is the runner's in-cluster address, not the host.
+      REGISTRY: ${{ vars.REGISTRY }}
+      IMAGE: ${{ vars.REGISTRY }}/codedogapp/nudge
       # renovate: datasource=github-releases depName=moby/buildkit
       BUILDKIT_VERSION: v0.34.1
     steps:
@@ -30,11 +34,6 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-      - name: Name the registry
-        run: |
-          # Gitea's own address, so that the tailnet's name stays out of this public repo.
-          echo "REGISTRY=${GITHUB_SERVER_URL#https://}" >> "$GITHUB_ENV"
-          echo "IMAGE=${GITHUB_SERVER_URL#https://}/codedogapp/nudge" >> "$GITHUB_ENV"
       - name: Install buildctl
         run: |
           curl -fsSL "https://github.com/moby/buildkit/releases/download/$BUILDKIT_VERSION/buildkit-$BUILDKIT_VERSION.linux-amd64.tar.gz" \
